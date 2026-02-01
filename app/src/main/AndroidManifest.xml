@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
     <application
             android:allowBackup="true"
             android:dataExtractionRules="@xml/data_extraction_rules"
@@ -11,6 +16,22 @@
             android:roundIcon="@mipmap/ic_launcher_round"
             android:supportsRtl="true"
             android:theme="@style/Theme.MeasurementApp">
+        <service
+                android:name=".CommunicationServices.Bluetooth.BluetoothReceiverService"
+                android:enabled="true"
+                android:exported="true">
+        </service>
+        <service
+                android:name=".CommunicationServices.Bluetooth.BluetoothSenderService"
+                android:enabled="true"
+                android:exported="true">
+        </service>
+        <service
+                android:name=".CommunicationServices.Bluetooth.BluetoothService"
+                android:enabled="true"
+                android:exported="true">
+        </service>
+
         <activity
                 android:name=".MainActivity"
                 android:exported="true"

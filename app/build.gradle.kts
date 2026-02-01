@@ -53,4 +53,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    implementation("androidx.activity:activity-ktx:1.12.3")
+    implementation("androidx.fragment:fragment-ktx:1.8.9")
 }
