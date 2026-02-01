@@ -19,7 +19,12 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,92 +32,114 @@ import com.leopoldbialek.measurementapp.ui.theme.MeasurementAppTheme
 import java.time.Duration
 
 class MainActivity : ComponentActivity() {
+    val technologies: List<String> = listOf<String>("Bluetooth LE (LE Coded PHY)", "Wi-Fi Aware")
+    val roles: List<String> = listOf<String>("Sender", "Receiver")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             MeasurementAppTheme {
-                Column(
-                    Modifier
-                        .padding(start = 25.dp),
-                    Arrangement.spacedBy(50.dp)
-                ) {
-                    Spacer(
-                        Modifier
-                            .height(75.dp)
-                    )
-                    TechnologySelection(listOf("Bluetooth LE", "Wi-Fi Aware"))
-                    RoleSelection(listOf("Sender", "Receiver"))
-                    ControlButtons(applicationContext)
-                }
+                MeasurementSelection(applicationContext, technologies, roles)
             }
         }
     }
 }
+@Composable
+fun MeasurementSelection(context: Context, technologies: List<String>, roles: List<String>){
+    val (selectedTechnology, onTechnologyChanged) = remember { mutableStateOf(technologies[0]) }
+    val (selectedRole, onRoleChanged) = remember { mutableStateOf(roles[0]) }
+    val (runningMeasurement, onMeasurementStateChanged) = remember { mutableStateOf(listOf<Boolean>(false, true)[0]) }
+
+    Column(
+        Modifier
+            .padding(start = 25.dp),
+        Arrangement.spacedBy(50.dp)
+    ) {
+        Spacer(
+            Modifier
+                .height(75.dp)
+        )
+        TechnologySelection(technologies, selectedTechnology, onTechnologyChanged)
+        RoleSelection(roles, selectedRole, onRoleChanged)
+        ControlButtons(context, runningMeasurement, onMeasurementStateChanged)
+    }
+}
+
 
 @Composable
-fun TechnologySelection(technologies: List<String>) {
-    Column(
-        Modifier,
-        Arrangement.spacedBy(7.dp)
-    ) {
-        Text("Technology for the Measurement", fontSize = 20.sp)
+fun TechnologySelection(technologies: List<String>, selectedTechnology: String, onTechnologyChanged: (String) -> Unit) {
 
-        Spacer(Modifier.height(3.dp))
+
+    Column() {
+        Text("Technology for the Measurement", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+
+        Spacer(Modifier.height(5.dp))
 
         technologies.forEach { technology ->
             Row() {
                 RadioButton(
-                    false,
-                    null
+                    technology == selectedTechnology,
+                    {
+                        onTechnologyChanged(technology)
+                    }
                 )
-                Text(technology)
+                Text(
+                    technology,
+                    Modifier.align(Alignment.CenterVertically)
+                )
             }
         }
     }
 }
 
 @Composable
-fun RoleSelection(roles: List<String>) {
-    Column(
-        Modifier,
-        Arrangement.spacedBy(7.dp)
-    ) {
-        Text("Role for the Measurement", fontSize = 20.sp)
+fun RoleSelection(roles: List<String>, selectedRole: String, onRoleChanged: (String) -> Unit) {
 
-        Spacer(Modifier.height(3.dp))
+
+    Column() {
+        Text("Role for the Measurement", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+
+        Spacer(Modifier.height(5.dp))
 
         roles.forEach { role ->
             Row() {
                 RadioButton(
-                    false,
-                    null
+                    role == selectedRole,
+                    { onRoleChanged(role) }
                 )
-                Text(role)
+                Text(
+                    role,
+                    Modifier.align(Alignment.CenterVertically)
+                )
             }
         }
     }
 }
 
 @Composable
-fun ControlButtons(context: Context) {
+fun ControlButtons(context: Context, runningMeasurement: Boolean, onMeasurementStateChanged: (Boolean) -> Unit) {
     Column(
-        Modifier.padding(end=25.dp),
+        Modifier.padding(end = 25.dp),
         Arrangement.spacedBy(10.dp)
     ) {
         Button(
             {
+                onMeasurementStateChanged(true)
                 Toast.makeText(context, "Measurement Started", Toast.LENGTH_SHORT).show()
             },
-            Modifier.fillMaxWidth()
+            Modifier.fillMaxWidth(),
+            !runningMeasurement
         ) {
             Text("Start")
         }
         Button(
             {
+                onMeasurementStateChanged(false)
                 Toast.makeText(context, "Measurement Stopped", Toast.LENGTH_SHORT).show()
             },
-            Modifier.fillMaxWidth()
+            Modifier.fillMaxWidth(),
+            runningMeasurement
         ) {
             Text("Stop")
         }
