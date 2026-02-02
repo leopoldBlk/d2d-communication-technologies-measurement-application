@@ -15,17 +15,24 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresPermission
+import com.leopoldbialek.measurementapp.CommunicationServices.Measurement
+import kotlinx.serialization.json.Json
 
 class BluetoothReceiverService : BluetoothService() {
     private lateinit var bleScanner: BluetoothLeScanner
 
     private val bleScanCallback: ScanCallback = object : ScanCallback() {
-        @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             if (result != null) {
                 if (result.isLegacy() == false && result.scanRecord?.serviceUuids?.contains(serviceUUID) == true) {
                     Log.i("Bluetooth-Receiver", "Received Data from Device-Name: ${result.scanRecord?.deviceName}")
                     Log.i("Bluetooth-Receiver", "Received Data with RSSI: ${result.rssi}")
+
+                    val measurement: Measurement =
+                        Json.decodeFromString<Measurement>(
+                            result.scanRecord?.serviceData?.get(serviceUUID)?.decodeToString().toString()
+                        )
+                    Log.i("Bluetooth-Receiver", "Received Data: ${measurement}")
                 }
             }
 

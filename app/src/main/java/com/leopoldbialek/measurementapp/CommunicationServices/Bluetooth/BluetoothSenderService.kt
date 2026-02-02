@@ -20,6 +20,7 @@ import com.leopoldbialek.measurementapp.CommunicationServices.Measurement
 import java.time.LocalDateTime
 import java.util.UUID
 import kotlinx.serialization.*
+import kotlinx.serialization.json.Json
 
 class BluetoothSenderService : BluetoothService() {
     private lateinit var bleAdvertiser: BluetoothLeAdvertiser
@@ -38,6 +39,17 @@ class BluetoothSenderService : BluetoothService() {
             .Builder()
             .addServiceUuid(serviceUUID)
             .setIncludeDeviceName(true)
+            .addServiceData(
+                serviceUUID,
+                Json.encodeToString(
+                    Measurement(
+                        UUID.randomUUID().toString(),
+                        0F,
+                        Coordinates(10.0, 15.0).toString(),
+                        LocalDateTime.now().toString()
+                    )
+                ).encodeToByteArray()
+            )
             .build()
 
     private val advertisingSetCallback: AdvertisingSetCallback = object : AdvertisingSetCallback() {
