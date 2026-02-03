@@ -44,7 +44,7 @@ import java.time.Duration
 import java.util.jar.Manifest
 
 class MainActivity : ComponentActivity() {
-    val technologies: List<String> = listOf<String>("Bluetooth LE (LE Coded PHY)", "Wi-Fi Aware")
+    val technologies: List<String> = listOf<String>("Bluetooth LE (1M PHY)", "Wi-Fi Aware")
     val roles: List<String> = listOf<String>("Sender", "Receiver")
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -185,7 +185,7 @@ fun ControlButtons(
                 }
 
                 onMeasurementStateChanged(true)
-                Toast.makeText(context, "Measurement Started", Toast.LENGTH_SHORT).show()
+                //Toast.makeText(context, "Measurement Started", Toast.LENGTH_SHORT).show()
             },
             Modifier.fillMaxWidth(),
             !runningMeasurement
@@ -211,7 +211,7 @@ fun ControlButtons(
                 }
 
                 onMeasurementStateChanged(false)
-                Toast.makeText(context, "Measurement Stopped", Toast.LENGTH_SHORT).show()
+                //Toast.makeText(context, "Measurement Stopped", Toast.LENGTH_SHORT).show()
             },
             Modifier.fillMaxWidth(),
             runningMeasurement

@@ -9,7 +9,7 @@ import android.os.ParcelUuid
 import androidx.annotation.RequiresPermission
 import java.util.UUID
 
-abstract class BluetoothService : Service() {
+abstract class BluetoothService() : Service() {
     protected lateinit var blManager: BluetoothManager
     protected lateinit var blAdapter: BluetoothAdapter
 

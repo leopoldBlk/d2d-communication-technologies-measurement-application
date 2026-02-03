@@ -17,14 +17,31 @@ import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.CommunicationServices.Coordinates
 import com.leopoldbialek.measurementapp.CommunicationServices.Measurement
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.util.UUID
 import kotlinx.serialization.*
+import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.json.Json
+import java.util.Timer
+import java.util.TimerTask
+import kotlin.concurrent.timer
+import kotlin.coroutines.CoroutineContext
 
-class BluetoothSenderService : BluetoothService() {
+class BluetoothSenderService() : BluetoothService() {
     private lateinit var bleAdvertiser: BluetoothLeAdvertiser
+    private lateinit var currentAdvertisingSet: AdvertisingSet
+    private lateinit var advertisingData: AdvertiseData
 
+    private val coroutineScope: CoroutineScope =
+        CoroutineScope(Job() + Dispatchers.Default + CoroutineName("Update Advertisement Coroutine"))
     private val advertisingSetParameters: AdvertisingSetParameters =
         AdvertisingSetParameters
             .Builder()
@@ -34,28 +51,41 @@ class BluetoothSenderService : BluetoothService() {
             .setTxPowerLevel(TX_POWER_MEDIUM)
             .build()
 
-    private val advertisingData: AdvertiseData =
-        AdvertiseData
-            .Builder()
-            .addServiceUuid(serviceUUID)
-            .setIncludeDeviceName(true)
-            .addServiceData(
-                serviceUUID,
-                Json.encodeToString(
-                    Measurement(
-                        UUID.randomUUID().toString(),
-                        0F,
-                        Coordinates(10.0, 15.0).toString(),
-                        LocalDateTime.now().toString()
-                    )
-                ).encodeToByteArray()
-            )
-            .build()
-
     private val advertisingSetCallback: AdvertisingSetCallback = object : AdvertisingSetCallback() {
         @RequiresPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
         override fun onAdvertisingSetStarted(advertisingSet: AdvertisingSet?, txPower: Int, status: Int) {
             super.onAdvertisingSetStarted(advertisingSet, txPower, status)
+
+            if (advertisingSet != null) {
+                currentAdvertisingSet = advertisingSet
+
+                coroutineScope.launch {
+                    while (true) {
+                        advertisingData = AdvertiseData
+                            .Builder()
+                            .addServiceUuid(serviceUUID)
+                            .setIncludeDeviceName(true)
+                            .addServiceData(
+                                serviceUUID,
+                                Json.encodeToString(
+                                    Measurement(
+                                        UUID.randomUUID().toString(),
+                                        0F,
+                                        Coordinates(10.0, 15.0).toString(),
+                                        LocalDateTime.now().toString()
+                                    )
+                                ).encodeToByteArray()
+                            )
+                            .build()
+
+                        currentAdvertisingSet.setAdvertisingData(advertisingData)
+
+                        Log.d("Bluetooth-Sender", "Updated advertising data}")
+
+                        delay(100)
+                    }
+                }
+            }
 
             if (status == ADVERTISE_SUCCESS) {
                 Log.i("Bluetooth-Sender", "Advertising started successfully")
@@ -68,10 +98,6 @@ class BluetoothSenderService : BluetoothService() {
             super.onAdvertisingSetStopped(advertisingSet)
 
             Log.i("Bluetooth-Sender", "Advertising stopped")
-        }
-
-        override fun onAdvertisingDataSet(advertisingSet: AdvertisingSet?, status: Int) {
-            super.onAdvertisingDataSet(advertisingSet, status)
         }
     }
 
@@ -89,24 +115,40 @@ class BluetoothSenderService : BluetoothService() {
 
         bleAdvertiser = blAdapter.bluetoothLeAdvertiser
 
-        if (intent != null) {
-            bleAdvertiser.startAdvertisingSet(
-                advertisingSetParameters,
-                advertisingData,
-                null,
-                null,
-                null,
-                advertisingSetCallback
+        advertisingData = AdvertiseData
+            .Builder()
+            .addServiceUuid(serviceUUID)
+            .setIncludeDeviceName(true)
+            .addServiceData(
+                serviceUUID,
+                Json.encodeToString(
+                    Measurement(
+                        UUID.randomUUID().toString(),
+                        0F,
+                        Coordinates(10.0, 15.0).toString(),
+                        LocalDateTime.now().toString()
+                    )
+                ).encodeToByteArray()
             )
-        }
+            .build()
 
-        // TODO: Is this necessary here? Maybe improve later
+        bleAdvertiser.startAdvertisingSet(
+            advertisingSetParameters,
+            advertisingData,
+            null,
+            null,
+            null,
+            advertisingSetCallback
+        )
+
         return status
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
     override fun onDestroy() {
-        bleAdvertiser.stopAdvertisingSet(advertisingSetCallback)
         super.onDestroy()
+
+        bleAdvertiser.stopAdvertisingSet(advertisingSetCallback)
+        coroutineScope.cancel()
     }
 }
