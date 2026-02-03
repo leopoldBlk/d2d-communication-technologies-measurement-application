@@ -2,14 +2,10 @@ package com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth
 
 import android.Manifest
 import android.bluetooth.BluetoothDevice.PHY_LE_1M
-import android.bluetooth.BluetoothDevice.PHY_LE_CODED
-import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
-import android.bluetooth.le.ScanSettings.PHY_LE_ALL_SUPPORTED
 import android.bluetooth.le.ScanSettings.SCAN_MODE_LOW_LATENCY
 import android.content.Intent
 import android.os.IBinder
@@ -21,6 +17,7 @@ import kotlinx.serialization.json.Json
 class BluetoothReceiverService : BluetoothService() {
     private lateinit var bleScanner: BluetoothLeScanner
 
+    //TODO: Saving measurements to persistence with own location data form location service -> coordinatesOnStart
     private val bleScanCallback: ScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             if (result != null) {
@@ -32,6 +29,7 @@ class BluetoothReceiverService : BluetoothService() {
                         Json.decodeFromString<Measurement>(
                             result.scanRecord?.serviceData?.get(serviceUUID)?.decodeToString().toString()
                         )
+
                     Log.i("Bluetooth-Receiver", "Received Data: ${measurement}")
                 }
             }
@@ -45,20 +43,18 @@ class BluetoothReceiverService : BluetoothService() {
     }
 
     override fun onCreate() {
-        super.onCreate()
         bleScanner = blAdapter.bluetoothLeScanner
+
+        super.onCreate()
     }
 
     @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val status: Int = super.onStartCommand(intent, flags, startId)
-
         val scanSettings: ScanSettings = ScanSettings.Builder()
             .setLegacy(false)
             .setPhy(PHY_LE_1M)
             .setScanMode(SCAN_MODE_LOW_LATENCY)
             .build()
-        //val scanFilter: ScanFilter = ScanFilter.Builder().setDeviceAddress("5A:E2:87:39:D5:45").build()
 
         if (intent != null) {
             bleScanner.startScan(null, scanSettings, bleScanCallback)
@@ -66,13 +62,14 @@ class BluetoothReceiverService : BluetoothService() {
         }
 
         // TODO: Is this necessary here? Maybe improve later
-        return status
+        return super.onStartCommand(intent, flags, startId)
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     override fun onDestroy() {
         bleScanner.stopScan(bleScanCallback)
         Log.i("Bluetooth-Receiver", "Stopped scanning")
+
         super.onDestroy()
     }
 }

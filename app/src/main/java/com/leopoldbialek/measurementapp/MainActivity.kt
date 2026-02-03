@@ -1,7 +1,5 @@
 package com.leopoldbialek.measurementapp
 
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -9,39 +7,28 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.ActivityResultCallback
-import androidx.activity.result.contract.ActivityResultContract
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.BluetoothReceiverService
 import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.BluetoothSenderService
-import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.BluetoothService
+import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
 import com.leopoldbialek.measurementapp.ui.theme.MeasurementAppTheme
-import java.time.Duration
-import java.util.jar.Manifest
 
 class MainActivity : ComponentActivity() {
     val technologies: List<String> = listOf<String>("Bluetooth LE (1M PHY)", "Wi-Fi Aware")
@@ -66,6 +53,12 @@ class MainActivity : ComponentActivity() {
                 MeasurementSelection(applicationContext, technologies, roles)
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+
+        applicationContext.startService(Intent(applicationContext, LocationService::class.java))
     }
 }
 
