@@ -9,42 +9,41 @@ import android.bluetooth.le.AdvertisingSetParameters
 import android.bluetooth.le.AdvertisingSetParameters.TX_POWER_MEDIUM
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.content.Intent
+import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
-import com.leopoldbialek.measurementapp.CommunicationServices.Measurement
+import com.leopoldbialek.measurementapp.CommunicationServices.TransmissionPaket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
-import java.util.UUID
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
+import java.time.Instant
 
 class BluetoothSenderService() : BluetoothService() {
     private lateinit var bleAdvertiser: BluetoothLeAdvertiser
     private lateinit var advertisingData: AdvertiseData
     private lateinit var currentAdvertisingSet: AdvertisingSet
+    private lateinit var advertisingSetParameters: AdvertisingSetParameters
 
-    private val advertisingSetParameters: AdvertisingSetParameters =
-        AdvertisingSetParameters
-            .Builder()
-            .setLegacyMode(false)
-            .setPrimaryPhy(BluetoothDevice.PHY_LE_1M)
-            .setInterval(AdvertisingSetParameters.INTERVAL_HIGH)
-            .setTxPowerLevel(TX_POWER_MEDIUM)
-            .build()
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
 
     private val advertisingSetCallback: AdvertisingSetCallback = object : AdvertisingSetCallback() {
         @RequiresPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
-        override fun onAdvertisingSetStarted(advertisingSet: AdvertisingSet?, txPower: Int, status: Int) {
+        override fun onAdvertisingSetStarted(
+            advertisingSet: AdvertisingSet?,
+            txPower: Int,
+            status: Int
+        ) {
             if (advertisingSet != null) {
                 currentAdvertisingSet = advertisingSet
 
+                //TODO: Why is timestamp for sending after the one for receiving?
                 coroutineScope.launch {
                     while (true) {
                         advertisingData = AdvertiseData
@@ -54,11 +53,15 @@ class BluetoothSenderService() : BluetoothService() {
                             .addServiceData(
                                 serviceUUID,
                                 Json.encodeToString(
-                                    Measurement(
-                                        UUID.randomUUID().toString(),
-                                        0F,
+                                    TransmissionPaket(
                                         LocationService.currentCoordinates.toString(),
-                                        LocalDateTime.now().toString()
+                                        batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY)
+                                            .toString(),
+                                        LocalDateTime.ofInstant(
+                                            Instant.ofEpochMilli(System.currentTimeMillis()),
+                                            java.util.TimeZone.getDefault().toZoneId()
+                                        ).toString()
+                                        //LocalDateTime.now().toString()
                                     )
                                 ).encodeToByteArray()
                             )
@@ -68,7 +71,7 @@ class BluetoothSenderService() : BluetoothService() {
 
                         Log.d("Bluetooth-Sender", "Updated advertising data")
 
-                        delay(100)
+                        delay(1)
                     }
                 }
             }
@@ -101,6 +104,23 @@ class BluetoothSenderService() : BluetoothService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         bleAdvertiser = blAdapter.bluetoothLeAdvertiser
 
+        val primaryPhy: Int = if (intent?.getStringExtra("Technology") == "Bluetooth LE (1M PHY)") {
+            BluetoothDevice.PHY_LE_1M
+        }
+        else{
+            BluetoothDevice.PHY_LE_CODED
+        }
+
+
+        advertisingSetParameters =
+            AdvertisingSetParameters
+                .Builder()
+                .setLegacyMode(false)
+                .setPrimaryPhy(primaryPhy)
+                .setInterval(AdvertisingSetParameters.INTERVAL_HIGH)
+                .setTxPowerLevel(TX_POWER_MEDIUM)
+                .build()
+
         advertisingData = AdvertiseData
             .Builder()
             .addServiceUuid(serviceUUID)
@@ -108,10 +128,9 @@ class BluetoothSenderService() : BluetoothService() {
             .addServiceData(
                 serviceUUID,
                 Json.encodeToString(
-                    Measurement(
-                        UUID.randomUUID().toString(),
-                        0F,
+                    TransmissionPaket(
                         LocationService.currentCoordinates.toString(),
+                        batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY).toString(),
                         LocalDateTime.now().toString()
                     )
                 ).encodeToByteArray()

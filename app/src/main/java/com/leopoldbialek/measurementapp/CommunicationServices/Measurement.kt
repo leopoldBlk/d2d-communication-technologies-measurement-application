@@ -6,9 +6,12 @@ import java.util.UUID
 
 @Serializable
 data class Measurement(
-    val measurementId: String,
-    val batteryLevel: Float,
-    val coordinates: String,
-    val timestamp: String,
+    val coordinatesSender: String,
+    val batteryLevelSender: String,
+    val timestampSending: String,
+    val coordinatesReceiver: String,
+    val batteryLevelReceiver: String,
+    val timestampReceiving: String,
+    val rssiValue: String
 ) {
 }

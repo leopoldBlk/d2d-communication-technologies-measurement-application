@@ -3,6 +3,9 @@ package com.leopoldbialek.measurementapp
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Environment
+import android.os.Environment.DIRECTORY_DOCUMENTS
+import android.provider.ContactsContract
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,9 +32,16 @@ import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.Bluetoot
 import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.BluetoothSenderService
 import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
 import com.leopoldbialek.measurementapp.ui.theme.MeasurementAppTheme
+import java.io.File
+import java.io.FileWriter
 
 class MainActivity : ComponentActivity() {
-    val technologies: List<String> = listOf<String>("Bluetooth LE (1M PHY)", "Wi-Fi Aware")
+    val technologies: List<String> = listOf<String>(
+        "Bluetooth LE (1M PHY)",
+        "Bluetooth LE (2M PHY)",
+        "Bluetooth LE (LE Coded PHY)",
+        "Wi-Fi Aware"
+    )
     val roles: List<String> = listOf<String>("Sender", "Receiver")
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +51,9 @@ class MainActivity : ComponentActivity() {
                 android.Manifest.permission.BLUETOOTH_ADVERTISE,
                 android.Manifest.permission.BLUETOOTH_CONNECT,
                 android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                android.Manifest.permission.READ_EXTERNAL_STORAGE,
             ),
             1
         )
@@ -66,7 +78,14 @@ class MainActivity : ComponentActivity() {
 fun MeasurementSelection(context: Context, technologies: List<String>, roles: List<String>) {
     val (selectedTechnology, onTechnologyChanged) = remember { mutableStateOf(technologies[0]) }
     val (selectedRole, onRoleChanged) = remember { mutableStateOf(roles[0]) }
-    val (runningMeasurement, onMeasurementStateChanged) = remember { mutableStateOf(listOf<Boolean>(false, true)[0]) }
+    val (runningMeasurement, onMeasurementStateChanged) = remember {
+        mutableStateOf(
+            listOf<Boolean>(
+                false,
+                true
+            )[0]
+        )
+    }
 
     Column(
         Modifier
@@ -77,9 +96,14 @@ fun MeasurementSelection(context: Context, technologies: List<String>, roles: Li
             Modifier
                 .height(75.dp)
         )
-        TechnologySelection(technologies, selectedTechnology, onTechnologyChanged, runningMeasurement)
+        TechnologySelection(
+            technologies,
+            selectedTechnology,
+            onTechnologyChanged,
+            runningMeasurement
+        )
         RoleSelection(roles, selectedRole, onRoleChanged, runningMeasurement)
-        ControlButtons(context, selectedRole, runningMeasurement, onMeasurementStateChanged)
+        ControlButtons(context, selectedRole, selectedTechnology, runningMeasurement, onMeasurementStateChanged)
     }
 }
 
@@ -152,6 +176,7 @@ fun RoleSelection(
 fun ControlButtons(
     context: Context,
     selectedRole: String,
+    selectedTechnology: String,
     runningMeasurement: Boolean,
     onMeasurementStateChanged: (Boolean) -> Unit
 ) {
@@ -166,14 +191,14 @@ fun ControlButtons(
                         Intent(
                             context,
                             BluetoothSenderService::class.java
-                        )
+                        ).putExtra("Technology", selectedTechnology)
                     )
                 } else {
                     context.startService(
                         Intent(
                             context,
                             BluetoothReceiverService::class.java
-                        )
+                        ).putExtra("Technology", selectedTechnology)
                     )
                 }
 

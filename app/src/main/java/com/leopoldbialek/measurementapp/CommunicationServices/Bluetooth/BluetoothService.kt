@@ -5,6 +5,7 @@ import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Intent
+import android.os.BatteryManager
 import android.os.ParcelUuid
 import androidx.annotation.RequiresPermission
 import java.util.UUID
@@ -12,6 +13,8 @@ import java.util.UUID
 abstract class BluetoothService() : Service() {
     protected lateinit var blManager: BluetoothManager
     protected lateinit var blAdapter: BluetoothAdapter
+
+    protected lateinit var batteryManager: BatteryManager
 
     protected val serviceUUID: ParcelUuid =
         ParcelUuid
@@ -25,6 +28,8 @@ abstract class BluetoothService() : Service() {
 
         blManager = applicationContext.getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
         blAdapter = blManager.adapter
+
+        batteryManager = applicationContext.getSystemService(BATTERY_SERVICE) as BatteryManager
 
         val isLe2MPhySupported: Boolean = blAdapter.isLe2MPhySupported
         val isLeCodedPhySupported: Boolean = blAdapter.isLeCodedPhySupported

@@ -3,7 +3,9 @@ package com.leopoldbialek.measurementapp.CommunicationServices
 import android.Manifest
 import android.app.Service
 import android.content.Intent
+import android.location.Location
 import android.location.LocationManager
+import android.location.LocationManager.GPS_PROVIDER
 import android.location.LocationRequest
 import android.os.Build
 import android.os.IBinder
@@ -15,7 +17,7 @@ import kotlinx.coroutines.asExecutor
 
 class LocationService : Service() {
     companion object {
-        public lateinit var currentCoordinates: Coordinates
+        public var currentCoordinates: Coordinates = Coordinates(0.0, 0.0)
     }
 
     private lateinit var locationManager: LocationManager
@@ -24,6 +26,8 @@ class LocationService : Service() {
         TODO("Return the communication channel to the service.")
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
+    @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
     override fun onCreate() {
         super.onCreate()
 
@@ -36,16 +40,18 @@ class LocationService : Service() {
         val status: Int = super.onStartCommand(intent, flags, startId)
 
         locationManager.getCurrentLocation(
-            LocationManager.GPS_PROVIDER,
+            GPS_PROVIDER,
             null,
             Dispatchers.Main.asExecutor()
         )
         { location ->
-            currentCoordinates = Coordinates(location.longitude, location.latitude)
+            if (location != null) {
+                currentCoordinates = Coordinates(location.longitude, location.latitude)
+            }
         }
 
         locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
+            GPS_PROVIDER,
             LocationRequest.Builder(100).build(),
             Dispatchers.Main.asExecutor()
         )
