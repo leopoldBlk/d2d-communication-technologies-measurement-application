@@ -28,12 +28,15 @@ import androidx.compose.ui.unit.sp
 import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.BluetoothReceiverService
 import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.BluetoothSenderService
 import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
+import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.WifiAwareReceiverService
+import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.WifiAwareSenderService
+import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.WifiAwareService
 import com.leopoldbialek.measurementapp.ui.theme.MeasurementAppTheme
 
 class MainActivity : ComponentActivity() {
     val technologies: List<String> = listOf<String>(
         "Bluetooth LE",
-        "Wi-Fi"
+        "Wi-Fi Aware"
     )
 
     val bluetoothLeSendConfigPrimaryPhy: List<String> = listOf("1M", "LE Coded")
@@ -52,6 +55,11 @@ class MainActivity : ComponentActivity() {
                 android.Manifest.permission.ACCESS_FINE_LOCATION,
                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                android.Manifest.permission.ACCESS_WIFI_STATE,
+                android.Manifest.permission.CHANGE_WIFI_STATE,
+                android.Manifest.permission.CHANGE_NETWORK_STATE,
+                android.Manifest.permission.INTERNET,
+                android.Manifest.permission.NEARBY_WIFI_DEVICES,
             ),
             1
         )
@@ -177,7 +185,7 @@ fun TechnologySelection(
     Column() {
         Text("Technology for the Measurement", fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
-        Spacer(Modifier.height(5.dp))
+        Spacer(Modifier.height(10.dp))
 
         BluetoothLeConfig(
             technologies[0],
@@ -193,6 +201,16 @@ fun TechnologySelection(
             bluetoothLeReceiveConfigPhy,
             selectedBluetoothLeReceiveConfigPhy,
             onBluetoothLeReceiveConfigPhyChanged,
+            runningMeasurement
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        WifiAwareConfig(
+            technologies[1],
+            selectedTechnology,
+            onTechnologyChanged,
+            selectedRole,
             runningMeasurement
         )
     }
@@ -302,6 +320,29 @@ fun BluetoothLeConfig(
 }
 
 @Composable
+fun WifiAwareConfig(
+    technology: String,
+    selectedTechnology: String,
+    onTechnologyChanged: (String) -> Unit,
+    selectedRole: String,
+    runningMeasurement: Boolean
+) {
+    Row() {
+        RadioButton(
+            technology == selectedTechnology,
+            { onTechnologyChanged(technology) },
+            enabled = !runningMeasurement
+        )
+
+        Text(
+            technology,
+            Modifier.align(Alignment.CenterVertically),
+            fontSize = 18.sp, fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
 fun RoleSelection(
     roles: List<String>,
     selectedRole: String,
@@ -367,6 +408,9 @@ fun ControlButtons(
                                 )
                         )
                     }
+                    else{
+                        context.startService(Intent(context, WifiAwareSenderService::class.java))
+                    }
 
                 } else {
                     if (selectedTechnology == "Bluetooth LE") {
@@ -379,6 +423,14 @@ fun ControlButtons(
                                     "PhyConfig",
                                     selectedBluetoothLeReceiveConfigPhy
                                 )
+                        )
+                    }
+                    else{
+                        context.startService(
+                            Intent(
+                                context,
+                                WifiAwareReceiverService::class.java
+                            )
                         )
                     }
                 }
@@ -394,19 +446,39 @@ fun ControlButtons(
         Button(
             {
                 if (selectedRole == "Sender") {
-                    context.stopService(
-                        Intent(
-                            context,
-                            BluetoothSenderService::class.java
+                    if (selectedTechnology == "Bluetooth LE") {
+                        context.stopService(
+                            Intent(
+                                context,
+                                BluetoothSenderService::class.java
+                            )
                         )
-                    )
+                    }
+                    else{
+                        context.stopService(
+                            Intent(
+                                context,
+                                WifiAwareSenderService::class.java
+                            )
+                        )
+                    }
                 } else {
-                    context.stopService(
-                        Intent(
-                            context,
-                            BluetoothReceiverService::class.java
+                    if (selectedTechnology == "Bluetooth LE") {
+                        context.stopService(
+                            Intent(
+                                context,
+                                BluetoothReceiverService::class.java
+                            )
                         )
-                    )
+                    }
+                    else{
+                        context.stopService(
+                            Intent(
+                                context,
+                                WifiAwareReceiverService::class.java
+                            )
+                        )
+                    }
                 }
 
                 onMeasurementStateChanged(false)

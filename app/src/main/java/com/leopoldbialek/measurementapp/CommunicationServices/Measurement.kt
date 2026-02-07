@@ -14,7 +14,7 @@ data class Measurement(
     val coordinatesReceiver: String,
     val batteryLevelReceiver: String,
     val timestampReceiving: String,
-    val rssiValue: String,
+    val rssiValue: String = "",
     val additionalInfo: String = ""
 ) {
 }
