@@ -3,10 +3,6 @@ package com.leopoldbialek.measurementapp
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.Environment
-import android.os.Environment.DIRECTORY_DOCUMENTS
-import android.provider.ContactsContract
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -32,16 +29,17 @@ import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.Bluetoot
 import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.BluetoothSenderService
 import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
 import com.leopoldbialek.measurementapp.ui.theme.MeasurementAppTheme
-import java.io.File
-import java.io.FileWriter
 
 class MainActivity : ComponentActivity() {
     val technologies: List<String> = listOf<String>(
-        "Bluetooth LE (1M PHY)",
-        "Bluetooth LE (2M PHY)",
-        "Bluetooth LE (LE Coded PHY)",
-        "Wi-Fi Aware"
+        "Bluetooth LE",
+        "Wi-Fi"
     )
+
+    val bluetoothLeSendConfigPrimaryPhy: List<String> = listOf("1M", "LE Coded")
+    val bluetoothLeSendConfigSecondaryPhy: List<String> = listOf("1M", "LE Coded")
+    val bluetoothLeReceiveConfigPhy: List<String> = listOf("1M", "LE Coded", "All Supported")
+
     val roles: List<String> = listOf<String>("Sender", "Receiver")
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,7 +60,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MeasurementAppTheme {
-                MeasurementSelection(applicationContext, technologies, roles)
+                MeasurementSelection(
+                    applicationContext,
+                    technologies,
+                    bluetoothLeSendConfigPrimaryPhy,
+                    bluetoothLeSendConfigSecondaryPhy,
+                    bluetoothLeReceiveConfigPhy,
+                    roles
+                )
             }
         }
     }
@@ -75,8 +80,31 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MeasurementSelection(context: Context, technologies: List<String>, roles: List<String>) {
+fun MeasurementSelection(
+    context: Context,
+    technologies: List<String>,
+    bluetoothLeSendConfigPrimaryPhy: List<String>,
+    bluetoothLeSendConfigSecondaryPhy: List<String>,
+    bluetoothLeReceiveConfigPhy: List<String>,
+    roles: List<String>
+) {
     val (selectedTechnology, onTechnologyChanged) = remember { mutableStateOf(technologies[0]) }
+    val (selectedBluetoothLeSendConfigPrimaryPhy, onBluetoothLeSendConfigPrimaryPhyChanged) = remember {
+        mutableStateOf(
+            bluetoothLeSendConfigPrimaryPhy[0]
+        )
+    }
+    val (selectedBluetoothLeSendConfigSecondaryPhy, onBluetoothLeSendConfigSecondaryPhyChanged) = remember {
+        mutableStateOf(
+            bluetoothLeSendConfigSecondaryPhy[0]
+        )
+    }
+    val (selectedBluetoothLeReceiveConfigPhy, onBluetoothLeReceiveConfigPhyChanged) = remember {
+        mutableStateOf(
+            bluetoothLeReceiveConfigPhy[0]
+        )
+    }
+
     val (selectedRole, onRoleChanged) = remember { mutableStateOf(roles[0]) }
     val (runningMeasurement, onMeasurementStateChanged) = remember {
         mutableStateOf(
@@ -100,10 +128,29 @@ fun MeasurementSelection(context: Context, technologies: List<String>, roles: Li
             technologies,
             selectedTechnology,
             onTechnologyChanged,
+            selectedRole,
+            bluetoothLeSendConfigPrimaryPhy,
+            selectedBluetoothLeSendConfigPrimaryPhy,
+            onBluetoothLeSendConfigPrimaryPhyChanged,
+            bluetoothLeSendConfigSecondaryPhy,
+            selectedBluetoothLeSendConfigSecondaryPhy,
+            onBluetoothLeSendConfigSecondaryPhyChanged,
+            bluetoothLeReceiveConfigPhy,
+            selectedBluetoothLeReceiveConfigPhy,
+            onBluetoothLeReceiveConfigPhyChanged,
             runningMeasurement
         )
         RoleSelection(roles, selectedRole, onRoleChanged, runningMeasurement)
-        ControlButtons(context, selectedRole, selectedTechnology, runningMeasurement, onMeasurementStateChanged)
+        ControlButtons(
+            context,
+            selectedRole,
+            selectedTechnology,
+            selectedBluetoothLeSendConfigPrimaryPhy,
+            selectedBluetoothLeSendConfigSecondaryPhy,
+            selectedBluetoothLeReceiveConfigPhy,
+            runningMeasurement,
+            onMeasurementStateChanged
+        )
     }
 }
 
@@ -113,6 +160,16 @@ fun TechnologySelection(
     technologies: List<String>,
     selectedTechnology: String,
     onTechnologyChanged: (String) -> Unit,
+    selectedRole: String,
+    bluetoothLeConfigPrimaryPhy: List<String>,
+    selectedBluetoothLeConfigPrimaryPhy: String,
+    onBluetoothLeConfigPrimaryPhyChanged: (String) -> Unit,
+    bluetoothLeConfigSecondaryPhy: List<String>,
+    selectedBluetoothLeConfigSecondaryPhy: String,
+    onBluetoothLeConfigSecondaryPhyChanged: (String) -> Unit,
+    bluetoothLeReceiveConfigPhy: List<String>,
+    selectedBluetoothLeReceiveConfigPhy: String,
+    onBluetoothLeReceiveConfigPhyChanged: (String) -> Unit,
     runningMeasurement: Boolean
 ) {
 
@@ -122,19 +179,123 @@ fun TechnologySelection(
 
         Spacer(Modifier.height(5.dp))
 
-        technologies.forEach { technology ->
-            Row() {
-                RadioButton(
-                    technology == selectedTechnology,
-                    {
-                        onTechnologyChanged(technology)
-                    },
-                    enabled = !runningMeasurement
-                )
+        BluetoothLeConfig(
+            technologies[0],
+            selectedTechnology,
+            onTechnologyChanged,
+            selectedRole,
+            bluetoothLeConfigPrimaryPhy,
+            selectedBluetoothLeConfigPrimaryPhy,
+            onBluetoothLeConfigPrimaryPhyChanged,
+            bluetoothLeConfigSecondaryPhy,
+            selectedBluetoothLeConfigSecondaryPhy,
+            onBluetoothLeConfigSecondaryPhyChanged,
+            bluetoothLeReceiveConfigPhy,
+            selectedBluetoothLeReceiveConfigPhy,
+            onBluetoothLeReceiveConfigPhyChanged,
+            runningMeasurement
+        )
+    }
+}
+
+@Composable
+fun BluetoothLeConfig(
+    technology: String,
+    selectedTechnology: String,
+    onTechnologyChanged: (String) -> Unit,
+    selectedRole: String,
+    bluetoothLeConfigPrimaryPhy: List<String>,
+    selectedBluetoothLeConfigPrimaryPhy: String,
+    onBluetoothLeConfigPrimaryPhyChanged: (String) -> Unit,
+    bluetoothLeConfigSecondaryPhy: List<String>,
+    selectedBluetoothLeConfigSecondaryPhy: String,
+    onBluetoothLeConfigSecondaryPhyChanged: (String) -> Unit,
+    bluetoothLeReceiveConfigPhy: List<String>,
+    selectedBluetoothLeReceiveConfigPhy: String,
+    onBluetoothLeReceiveConfigPhyChanged: (String) -> Unit,
+    runningMeasurement: Boolean
+) {
+    Column() {
+        Row(
+        ) {
+            RadioButton(
+                technology == selectedTechnology,
+                { onTechnologyChanged(technology) },
+                enabled = !runningMeasurement
+            )
+
+
+            Column() {
+                Spacer(Modifier.height(12.dp))
+
                 Text(
                     technology,
-                    Modifier.align(Alignment.CenterVertically)
+                    fontSize = 18.sp, fontWeight = FontWeight.Bold
                 )
+
+                Spacer(Modifier.height(15.dp))
+
+                if (selectedRole == "Sender") {
+                    Row() {
+                        Column() {
+                            Text("Primary PHY", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+
+                            bluetoothLeConfigPrimaryPhy.forEach { phyConfig ->
+                                Row() {
+                                    RadioButton(
+                                        phyConfig == selectedBluetoothLeConfigPrimaryPhy,
+                                        {
+                                            onBluetoothLeConfigPrimaryPhyChanged(phyConfig)
+                                        },
+                                        enabled = !runningMeasurement && technology == selectedTechnology
+                                    )
+                                    Text(
+                                        phyConfig,
+                                        Modifier.align(Alignment.CenterVertically)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.width(30.dp))
+
+                        Column() {
+                            Text("Secondary PHY", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+
+                            bluetoothLeConfigSecondaryPhy.forEach { phyConfig ->
+                                Row() {
+                                    RadioButton(
+                                        phyConfig == selectedBluetoothLeConfigSecondaryPhy,
+                                        {
+                                            onBluetoothLeConfigSecondaryPhyChanged(phyConfig)
+                                        },
+                                        enabled = !runningMeasurement && technology == selectedTechnology
+                                    )
+                                    Text(
+                                        phyConfig,
+                                        Modifier.align(Alignment.CenterVertically)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    bluetoothLeReceiveConfigPhy.forEach { phyConfig ->
+                        Row() {
+                            RadioButton(
+                                phyConfig == selectedBluetoothLeReceiveConfigPhy,
+                                {
+                                    onBluetoothLeReceiveConfigPhyChanged(phyConfig)
+                                },
+                                enabled = !runningMeasurement && technology == selectedTechnology
+                            )
+                            Text(
+                                phyConfig,
+                                Modifier.align(Alignment.CenterVertically)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -177,6 +338,9 @@ fun ControlButtons(
     context: Context,
     selectedRole: String,
     selectedTechnology: String,
+    selectedBluetoothLeConfigPrimaryPhy: String,
+    selectedBluetoothLeConfigSecondaryPhy: String,
+    selectedBluetoothLeReceiveConfigPhy: String,
     runningMeasurement: Boolean,
     onMeasurementStateChanged: (Boolean) -> Unit
 ) {
@@ -187,19 +351,36 @@ fun ControlButtons(
         Button(
             {
                 if (selectedRole == "Sender") {
-                    context.startService(
-                        Intent(
-                            context,
-                            BluetoothSenderService::class.java
-                        ).putExtra("Technology", selectedTechnology)
-                    )
+                    if (selectedTechnology == "Bluetooth LE") {
+                        context.startService(
+                            Intent(
+                                context,
+                                BluetoothSenderService::class.java
+                            )
+                                .putExtra(
+                                    "PrimaryPhyConfig",
+                                    selectedBluetoothLeConfigPrimaryPhy
+                                )
+                                .putExtra(
+                                    "SecondaryPhyConfig",
+                                    selectedBluetoothLeConfigSecondaryPhy
+                                )
+                        )
+                    }
+
                 } else {
-                    context.startService(
-                        Intent(
-                            context,
-                            BluetoothReceiverService::class.java
-                        ).putExtra("Technology", selectedTechnology)
-                    )
+                    if (selectedTechnology == "Bluetooth LE") {
+                        context.startService(
+                            Intent(
+                                context,
+                                BluetoothReceiverService::class.java
+                            )
+                                .putExtra(
+                                    "PhyConfig",
+                                    selectedBluetoothLeReceiveConfigPhy
+                                )
+                        )
+                    }
                 }
 
                 onMeasurementStateChanged(true)

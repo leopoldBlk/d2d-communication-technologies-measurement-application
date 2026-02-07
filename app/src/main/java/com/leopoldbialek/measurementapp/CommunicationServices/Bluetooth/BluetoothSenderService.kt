@@ -104,19 +104,26 @@ class BluetoothSenderService() : BluetoothService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         bleAdvertiser = blAdapter.bluetoothLeAdvertiser
 
-        val primaryPhy: Int = if (intent?.getStringExtra("Technology") == "Bluetooth LE (1M PHY)") {
-            BluetoothDevice.PHY_LE_1M
-        }
-        else{
-            BluetoothDevice.PHY_LE_CODED
-        }
+        val primaryPhy: Int =
+            if (intent?.getStringExtra("PrimaryPhyConfig") == "1M") {
+                BluetoothDevice.PHY_LE_1M
+            } else {
+                BluetoothDevice.PHY_LE_CODED
+            }
 
+        val secondaryPhy: Int =
+            if (intent?.getStringExtra("SecondaryPhyConfig") == "1M") {
+                BluetoothDevice.PHY_LE_1M
+            } else {
+                BluetoothDevice.PHY_LE_CODED
+            }
 
         advertisingSetParameters =
             AdvertisingSetParameters
                 .Builder()
                 .setLegacyMode(false)
                 .setPrimaryPhy(primaryPhy)
+                .setSecondaryPhy(secondaryPhy)
                 .setInterval(AdvertisingSetParameters.INTERVAL_HIGH)
                 .setTxPowerLevel(TX_POWER_MEDIUM)
                 .build()

@@ -2,14 +2,13 @@ package com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth
 
 import android.Manifest
 import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothDevice.PHY_LE_1M
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.bluetooth.le.ScanSettings.PHY_LE_ALL_SUPPORTED
 import android.bluetooth.le.ScanSettings.SCAN_MODE_LOW_LATENCY
 import android.content.Intent
-import android.os.BatteryManager
 import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
 import android.os.IBinder
 import android.os.SystemClock
@@ -51,10 +50,25 @@ class BluetoothReceiverService : BluetoothService() {
                         )
 
                     val timestampMillisTransmissionPacketReceived: Long =
-                        System.currentTimeMillis() - SystemClock.elapsedRealtime() + (result.timestampNanos * 10.0.pow(-6)).roundToLong()
+                        System.currentTimeMillis() - SystemClock.elapsedRealtime() + (result.timestampNanos * 10.0.pow(
+                            -6
+                        )).roundToLong()
+
+                    //TODO: Really necessary to get primary and secondary phy? The calls .primaryPhy
+                    // and .secondaryPhy only return the phys determined for scanning and not the
+                    // exact phy of bot which received the data packet!
+                    /*
+                    val phyReceivedData: String =
+                        if (result.primaryPhy == BluetoothDevice.PHY_LE_1M) {
+                            "Data received by 1M PHY"
+                        } else {
+                            "Data received by LE Coded PHY"
+                        }
+                     */
 
                     //TODO: Why is timestamp for sending after the one for receiving?
                     val measurement: Measurement = Measurement(
+                        "Bluetooth LE",
                         receivedTransmissionPacket.coordinatesSender,
                         receivedTransmissionPacket.batteryLevelSender,
                         receivedTransmissionPacket.timestampSending,
@@ -92,15 +106,14 @@ class BluetoothReceiverService : BluetoothService() {
     @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 
-        val phy: Int = if (intent?.getStringExtra("Technology") == "Bluetooth LE (1M PHY)") {
-            BluetoothDevice.PHY_LE_1M
-        }
-        else if (intent?.getStringExtra("Technology") == "Bluetooth LE (2M PHY)"){
-            BluetoothDevice.PHY_LE_2M
-        }
-        else{
-            BluetoothDevice.PHY_LE_CODED
-        }
+        val phy: Int =
+            if (intent?.getStringExtra("PhyConfig") == "1M") {
+                BluetoothDevice.PHY_LE_1M
+            } else if (intent?.getStringExtra("PhyConfig") == "LE Coded") {
+                BluetoothDevice.PHY_LE_CODED
+            } else {
+                PHY_LE_ALL_SUPPORTED
+            }
 
         val scanSettings: ScanSettings = ScanSettings.Builder()
             .setLegacy(false)
