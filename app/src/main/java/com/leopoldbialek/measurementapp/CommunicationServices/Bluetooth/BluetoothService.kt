@@ -36,9 +36,4 @@ abstract class BluetoothService() : Service() {
         val isLeExtendedAdvertisingSupported: Boolean = blAdapter.isLeExtendedAdvertisingSupported
         val isLePeriodicAdvertisingSupported: Boolean = blAdapter.isLePeriodicAdvertisingSupported
     }
-
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return super.onStartCommand(intent, flags, startId)
-    }
 }

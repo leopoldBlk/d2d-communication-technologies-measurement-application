@@ -32,8 +32,13 @@ import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.WifiAwareRece
 import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.WifiAwareSenderService
 import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.WifiAwareService
 import com.leopoldbialek.measurementapp.ui.theme.MeasurementAppTheme
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        val deviceUUID: UUID = UUID.randomUUID()
+    }
+
     val technologies: List<String> = listOf<String>(
         "Bluetooth LE",
         "Wi-Fi Aware"
@@ -399,6 +404,10 @@ fun ControlButtons(
                                 BluetoothSenderService::class.java
                             )
                                 .putExtra(
+                                    "DeviceUUID",
+                                    MainActivity.deviceUUID
+                                )
+                                .putExtra(
                                     "PrimaryPhyConfig",
                                     selectedBluetoothLeConfigPrimaryPhy
                                 )
@@ -407,9 +416,17 @@ fun ControlButtons(
                                     selectedBluetoothLeConfigSecondaryPhy
                                 )
                         )
-                    }
-                    else{
-                        context.startService(Intent(context, WifiAwareSenderService::class.java))
+                    } else {
+                        context.startService(
+                            Intent(
+                                context,
+                                WifiAwareSenderService::class.java
+                            )
+                                .putExtra(
+                                    "DeviceUUID",
+                                    MainActivity.deviceUUID
+                                )
+                        )
                     }
 
                 } else {
@@ -420,17 +437,24 @@ fun ControlButtons(
                                 BluetoothReceiverService::class.java
                             )
                                 .putExtra(
+                                    "DeviceUUID",
+                                    MainActivity.deviceUUID
+                                )
+                                .putExtra(
                                     "PhyConfig",
                                     selectedBluetoothLeReceiveConfigPhy
                                 )
                         )
-                    }
-                    else{
+                    } else {
                         context.startService(
                             Intent(
                                 context,
                                 WifiAwareReceiverService::class.java
                             )
+                                .putExtra(
+                                    "DeviceUUID",
+                                    MainActivity.deviceUUID
+                                )
                         )
                     }
                 }
@@ -453,8 +477,7 @@ fun ControlButtons(
                                 BluetoothSenderService::class.java
                             )
                         )
-                    }
-                    else{
+                    } else {
                         context.stopService(
                             Intent(
                                 context,
@@ -470,8 +493,7 @@ fun ControlButtons(
                                 BluetoothReceiverService::class.java
                             )
                         )
-                    }
-                    else{
+                    } else {
                         context.stopService(
                             Intent(
                                 context,

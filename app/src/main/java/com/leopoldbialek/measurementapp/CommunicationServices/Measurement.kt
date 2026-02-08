@@ -8,9 +8,11 @@ import java.util.UUID
 @Serializable
 data class Measurement(
     val technologyForDataTransmission: String,
+    val uuidSender: String,
     val coordinatesSender: String,
     val batteryLevelSender: String,
     val timestampSending: String,
+    val uuidReceiver: String,
     val coordinatesReceiver: String,
     val batteryLevelReceiver: String,
     val timestampReceiving: String,

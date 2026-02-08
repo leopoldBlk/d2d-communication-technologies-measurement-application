@@ -16,6 +16,7 @@ import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
 import com.leopoldbialek.measurementapp.CommunicationServices.TransmissionPaket
+import com.leopoldbialek.measurementapp.MainActivity
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
@@ -75,6 +76,7 @@ class WifiAwareSenderService : WifiAwareService() {
                 .setServiceSpecificInfo(
                     Json.encodeToString(
                         TransmissionPaket(
+                            MainActivity.deviceUUID.toString(),
                             LocationService.currentCoordinates.toString(),
                             batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY)
                                 .toString(),

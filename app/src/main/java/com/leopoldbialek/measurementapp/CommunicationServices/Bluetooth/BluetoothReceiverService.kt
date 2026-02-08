@@ -18,6 +18,7 @@ import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
 import com.leopoldbialek.measurementapp.CommunicationServices.Measurement
 import com.leopoldbialek.measurementapp.CommunicationServices.PersistenceService
 import com.leopoldbialek.measurementapp.CommunicationServices.TransmissionPaket
+import com.leopoldbialek.measurementapp.MainActivity
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.time.Instant
@@ -69,9 +70,11 @@ class BluetoothReceiverService : BluetoothService() {
                     //TODO: Why is timestamp for sending after the one for receiving?
                     val measurement: Measurement = Measurement(
                         "Bluetooth LE",
+                        receivedTransmissionPacket.uuidSender,
                         receivedTransmissionPacket.coordinatesSender,
                         receivedTransmissionPacket.batteryLevelSender,
                         receivedTransmissionPacket.timestampSending,
+                        MainActivity.deviceUUID.toString(),
                         LocationService.currentCoordinates.toString(),
                         batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY).toString(),
                         LocalDateTime.ofInstant(

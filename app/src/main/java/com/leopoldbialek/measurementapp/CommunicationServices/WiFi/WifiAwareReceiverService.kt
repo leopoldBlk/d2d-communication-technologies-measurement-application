@@ -17,6 +17,7 @@ import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
 import com.leopoldbialek.measurementapp.CommunicationServices.Measurement
 import com.leopoldbialek.measurementapp.CommunicationServices.PersistenceService
 import com.leopoldbialek.measurementapp.CommunicationServices.TransmissionPaket
+import com.leopoldbialek.measurementapp.MainActivity
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 
@@ -75,9 +76,11 @@ class WifiAwareReceiverService : WifiAwareService() {
                                     //TODO: RSSI value cannot be obtained from the ServiceDiscoveryInfo object
                                     val measurement: Measurement = Measurement(
                                         "Wi-Fi Aware",
+                                        receivedTransmissionPacket.uuidSender,
                                         receivedTransmissionPacket.coordinatesSender,
                                         receivedTransmissionPacket.batteryLevelSender,
                                         receivedTransmissionPacket.timestampSending,
+                                        MainActivity.deviceUUID.toString(),
                                         LocationService.currentCoordinates.toString(),
                                         batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY)
                                             .toString(),

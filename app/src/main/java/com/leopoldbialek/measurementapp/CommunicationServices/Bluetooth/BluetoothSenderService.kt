@@ -16,6 +16,7 @@ import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
 import com.leopoldbialek.measurementapp.CommunicationServices.TransmissionPaket
+import com.leopoldbialek.measurementapp.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import java.time.LocalDateTime
@@ -88,6 +89,7 @@ class BluetoothSenderService() : BluetoothService() {
                                 serviceUUID,
                                 Json.encodeToString(
                                     TransmissionPaket(
+                                        MainActivity.deviceUUID.toString(),
                                         LocationService.currentCoordinates.toString(),
                                         batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY)
                                             .toString(),
@@ -172,6 +174,7 @@ class BluetoothSenderService() : BluetoothService() {
                 serviceUUID,
                 Json.encodeToString(
                     TransmissionPaket(
+                        MainActivity.deviceUUID.toString(),
                         LocationService.currentCoordinates.toString(),
                         batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY).toString(),
                         LocalDateTime.now().toString()
