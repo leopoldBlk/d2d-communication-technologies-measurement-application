@@ -183,6 +183,9 @@ class BluetoothSenderService() : BluetoothService() {
             )
             .build()
 
+        //Max Advertising Data Length: 1650 Bytes
+        val maxAdvertisingDataLength: Int = blAdapter.leMaximumAdvertisingDataLength
+
         bleAdvertiser.startAdvertisingSet(
             advertisingSetParameters,
             advertisingData,

@@ -56,6 +56,9 @@ class WifiAwareSenderService : WifiAwareService() {
             wifiAwareManager =
                 applicationContext.getSystemService(WIFI_AWARE_SERVICE) as WifiAwareManager
 
+            // Max Service Specific Info Length: 255 Bytes
+            val maxServiceSpecificInfoLength: Int? = wifiAwareManager.characteristics?.maxServiceSpecificInfoLength
+
             wifiAwareManager.attach(object : AttachCallback() {
 
                 override fun onAttached(session: WifiAwareSession?) {
