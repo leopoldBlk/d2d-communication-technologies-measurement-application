@@ -1,4 +1,4 @@
-package com.leopoldbialek.measurementapp.CommunicationServices.WiFi
+package com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Aware
 
 import android.annotation.SuppressLint
 import android.content.Intent

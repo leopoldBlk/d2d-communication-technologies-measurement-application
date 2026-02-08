@@ -1,11 +1,9 @@
-package com.leopoldbialek.measurementapp.CommunicationServices.WiFi
+package com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Aware
 
 import android.app.Service
-import android.content.Intent
 import android.net.wifi.aware.WifiAwareManager
 import android.net.wifi.aware.WifiAwareSession
 import android.os.BatteryManager
-import android.os.IBinder
 import android.os.ParcelUuid
 import java.util.UUID
 

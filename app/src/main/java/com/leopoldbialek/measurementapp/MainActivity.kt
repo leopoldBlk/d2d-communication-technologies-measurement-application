@@ -28,9 +28,10 @@ import androidx.compose.ui.unit.sp
 import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.BluetoothReceiverService
 import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.BluetoothSenderService
 import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
-import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.WifiAwareReceiverService
-import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.WifiAwareSenderService
-import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.WifiAwareService
+import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Aware.WifiAwareReceiverService
+import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Aware.WifiAwareSenderService
+import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Direct.WifiDirectReceiverService
+import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Direct.WifiDirectSenderService
 import com.leopoldbialek.measurementapp.ui.theme.MeasurementAppTheme
 import java.util.UUID
 
@@ -89,6 +90,10 @@ class MainActivity : ComponentActivity() {
         super.onStart()
 
         applicationContext.startService(Intent(applicationContext, LocationService::class.java))
+
+        //applicationContext.startService(Intent(applicationContext, WifiDirectSenderService::class.java))
+
+        //applicationContext.startService(Intent(applicationContext, WifiDirectReceiverService::class.java))
     }
 }
 

@@ -25,15 +25,23 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MeasurementApp">
         <service
-            android:name=".CommunicationServices.WiFi.WifiAwareService"
+            android:name=".CommunicationServices.WiFi.Direct.WifiDirectReceiverService"
             android:enabled="true"
             android:exported="true"></service>
         <service
-            android:name=".CommunicationServices.WiFi.WifiAwareReceiverService"
+            android:name=".CommunicationServices.WiFi.Direct.WifiDirectSenderService"
             android:enabled="true"
             android:exported="true"></service>
         <service
-            android:name=".CommunicationServices.WiFi.WifiAwareSenderService"
+            android:name=".CommunicationServices.WiFi.Aware.WifiAwareService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".CommunicationServices.WiFi.Aware.WifiAwareReceiverService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".CommunicationServices.WiFi.Aware.WifiAwareSenderService"
             android:enabled="true"
             android:exported="true" />
         <service
