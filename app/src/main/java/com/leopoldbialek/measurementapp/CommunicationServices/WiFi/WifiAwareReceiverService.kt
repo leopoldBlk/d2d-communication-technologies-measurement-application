@@ -90,8 +90,6 @@ class WifiAwareReceiverService : WifiAwareService() {
                                     receivedTransmissionPackets.add(measurement)
 
                                     Log.i("Wifi-Aware-Receiver", "Received Data: ${measurement}")
-
-                                    //val test = info.serviceSpecificInfo?.decodeToString()
                                 }
                             }, null
                         )
@@ -103,13 +101,13 @@ class WifiAwareReceiverService : WifiAwareService() {
 
     //TODO: Super implementations at the beginning of method or at the end?
     override fun onDestroy() {
-        super.onDestroy()
-
         wifiAwareSession.close()
 
         PersistenceService.Companion.persistData(receivedTransmissionPackets.toString())
         applicationContext.stopService(Intent(applicationContext, PersistenceService::class.java))
 
         Log.d("Wifi-Aware-Receiver: ", "Stopped Service!")
+
+        super.onDestroy()
     }
 }

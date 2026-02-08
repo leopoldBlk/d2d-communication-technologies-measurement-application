@@ -22,8 +22,19 @@ import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.util.TimeZone
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 
 class WifiAwareSenderService : WifiAwareService() {
+    private var isPublishing: AtomicBoolean = AtomicBoolean(false)
+
+    //TODO: Add delay to request?
+    private val publishingStateMonitor: Thread = Thread {
+        while (true) {
+            if (!isPublishing.get()) {
+                startPublishing()
+            }
+        }
+    }
 
     private lateinit var publishServiceConfig: PublishConfig
 
@@ -51,7 +62,10 @@ class WifiAwareSenderService : WifiAwareService() {
                     super.onAttached(session)
                     if (session != null) {
                         wifiAwareSession = session
+
                         startPublishing()
+
+                        publishingStateMonitor.start()
                     }
                 }
             }, null)
@@ -61,6 +75,8 @@ class WifiAwareSenderService : WifiAwareService() {
     override fun onDestroy() {
         super.onDestroy()
 
+        isPublishing.set(false)
+
         wifiAwareSession.close()
         Log.d("Wifi-Aware-Sender: ", "Stopped Service!")
     }
@@ -69,6 +85,8 @@ class WifiAwareSenderService : WifiAwareService() {
     //TODO: Timestamp accuracy when sending?
     @SuppressLint("MissingPermission")
     fun startPublishing() {
+        isPublishing.set(true)
+
         publishServiceConfig =
             PublishConfig.Builder()
                 .setServiceName(serviceUUID.toString())
@@ -94,12 +112,15 @@ class WifiAwareSenderService : WifiAwareService() {
                 override fun onPublishStarted(session: PublishDiscoverySession) {
                     super.onPublishStarted(session)
 
+                    //isPublishing = true
+
                     Log.d("Wifi-Aware-Sender", "Publishing Started!")
                 }
 
                 override fun onSessionTerminated() {
                     super.onSessionTerminated()
-                    startPublishing()
+
+                    isPublishing.set(false)
                 }
             },
             null
