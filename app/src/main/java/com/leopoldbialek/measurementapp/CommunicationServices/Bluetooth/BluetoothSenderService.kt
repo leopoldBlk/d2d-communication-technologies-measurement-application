@@ -1,6 +1,7 @@
 package com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertisingSet
@@ -17,19 +18,48 @@ import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
 import com.leopoldbialek.measurementapp.CommunicationServices.TransmissionPaket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 
 class BluetoothSenderService() : BluetoothService() {
     private lateinit var bleAdvertiser: BluetoothLeAdvertiser
     private lateinit var advertisingData: AdvertiseData
     private lateinit var currentAdvertisingSet: AdvertisingSet
     private lateinit var advertisingSetParameters: AdvertisingSetParameters
+    private val isAdvertising: AtomicBoolean = AtomicBoolean(false)
+
+    @SuppressLint("MissingPermission")
+    private val advertiseDataUpdater: Thread = Thread {
+        while (isAdvertising.get()) {
+            advertisingData = AdvertiseData
+                .Builder()
+                .addServiceUuid(serviceUUID)
+                .setIncludeDeviceName(true)
+                .addServiceData(
+                    serviceUUID,
+                    Json.encodeToString(
+                        TransmissionPaket(
+                            MainActivity.deviceUUID.toString(),
+                            LocationService.currentCoordinates.toString(),
+                            batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY)
+                                .toString(),
+                            LocalDateTime.ofInstant(
+                                Instant.ofEpochMilli(System.currentTimeMillis()),
+                                java.util.TimeZone.getDefault().toZoneId()
+                            ).toString()
+                        )
+                    ).encodeToByteArray()
+                )
+                .build()
+
+            currentAdvertisingSet.setAdvertisingData(advertisingData)
+
+            Log.d("Bluetooth-Sender", "Updated advertising data")
+        }
+    }
 
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
 
@@ -43,8 +73,12 @@ class BluetoothSenderService() : BluetoothService() {
             if (advertisingSet != null) {
                 currentAdvertisingSet = advertisingSet
 
-                //TODO: Why is timestamp for sending after the one for receiving?
-                coroutineScope.launch {
+                isAdvertising.set(true)
+
+                /*
+                Previously used coroutine for updating timestamp -> now switched to threads
+
+               coroutineScope.launch {
                     while (true) {
                         advertisingData = AdvertiseData
                             .Builder()
@@ -74,6 +108,8 @@ class BluetoothSenderService() : BluetoothService() {
                         delay(1)
                     }
                 }
+                */
+                advertiseDataUpdater.start()
             }
 
             if (status == ADVERTISE_SUCCESS) {
@@ -160,7 +196,11 @@ class BluetoothSenderService() : BluetoothService() {
     override fun onDestroy() {
         super.onDestroy()
 
+        isAdvertising.set(false)
+
         bleAdvertiser.stopAdvertisingSet(advertisingSetCallback)
-        coroutineScope.cancel()
+
+        // Previously used coroutine for updating timestamp -> now switched to threads
+        //coroutineScope.cancel()
     }
 }
