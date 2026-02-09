@@ -1,4 +1,4 @@
-package com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth
+package com.leopoldbialek.measurementapp.CommunicationServices.BluetoothLe
 
 import android.Manifest
 import android.bluetooth.BluetoothDevice
@@ -14,21 +14,24 @@ import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.RequiresPermission
-import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
-import com.leopoldbialek.measurementapp.CommunicationServices.Measurement
-import com.leopoldbialek.measurementapp.CommunicationServices.PersistenceService
-import com.leopoldbialek.measurementapp.CommunicationServices.TransmissionPaket
+import com.leopoldbialek.measurementapp.Location.LocationService
+import com.leopoldbialek.measurementapp.Persistence.Measurement
+import com.leopoldbialek.measurementapp.Persistence.PersistenceService
+import com.leopoldbialek.measurementapp.TransmissionData.TransmissionPaket
 import com.leopoldbialek.measurementapp.MainActivity
+import com.leopoldbialek.measurementapp.Misc.LogController
+import com.leopoldbialek.measurementapp.Misc.TestType
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.time.Instant
+import java.util.TimeZone
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
-class BluetoothReceiverService : BluetoothService() {
+class BluetoothLeReceiver : BluetoothLeService() {
     private lateinit var bleScanner: BluetoothLeScanner
 
-    private val receivedTransmissionPackets: MutableList<Measurement> =
+    private val measurements: MutableList<Measurement> =
         mutableListOf<Measurement>()
 
     private val bleScanCallback: ScanCallback = object : ScanCallback() {
@@ -38,11 +41,16 @@ class BluetoothReceiverService : BluetoothService() {
                         serviceUUID
                     ) == true
                 ) {
-                    Log.i(
-                        "Bluetooth-Receiver",
+                    LogController.log(
+                        Log.INFO,
+                        "Bluetooth-LE-Receiver",
                         "Received Data from Device-Name: ${result.scanRecord?.deviceName}"
                     )
-                    Log.i("Bluetooth-Receiver", "Received Data with RSSI: ${result.rssi}")
+                    LogController.log(
+                        Log.INFO,
+                        "Bluetooth-LE-Receiver",
+                        "Received Data with RSSI: ${result.rssi}"
+                    )
 
                     val receivedTransmissionPacket: TransmissionPaket =
                         Json.decodeFromString<TransmissionPaket>(
@@ -75,18 +83,26 @@ class BluetoothReceiverService : BluetoothService() {
                         receivedTransmissionPacket.batteryLevelSender,
                         receivedTransmissionPacket.timestampSending,
                         MainActivity.deviceUUID.toString(),
-                        LocationService.currentCoordinates.toString(),
+                        coordinatesReceiver = if (testType == TestType.DistanceTest) {
+                            LocationService.currentCoordinates.toString()
+                        } else {
+                            ""
+                        },
                         batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY).toString(),
                         LocalDateTime.ofInstant(
                             Instant.ofEpochMilli(timestampMillisTransmissionPacketReceived),
-                            java.util.TimeZone.getDefault().toZoneId()
+                            TimeZone.getDefault().toZoneId()
                         ).toString(),
                         result.rssi.toString()
                     )
 
-                    receivedTransmissionPackets.add(measurement)
+                    measurements.add(measurement)
 
-                    Log.i("Bluetooth-Receiver", "Received Data: ${measurement}")
+                    LogController.log(
+                        Log.INFO,
+                        "Bluetooth-LE-Receiver",
+                        "Received Data: ${measurement}"
+                    )
                 }
             }
 
@@ -102,12 +118,25 @@ class BluetoothReceiverService : BluetoothService() {
         super.onCreate()
 
         bleScanner = blAdapter.bluetoothLeScanner
-
-        applicationContext.startService(Intent(applicationContext, PersistenceService::class.java))
     }
 
     @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null && intent.getStringExtra("TestType") == "Distance Test") {
+            applicationContext.startService(Intent(applicationContext, LocationService::class.java))
+
+            testType = TestType.DistanceTest
+        }
+        else{
+            testType = TestType.BatteryTest
+        }
+
+        applicationContext.startService(
+            Intent(applicationContext, PersistenceService::class.java)
+                .putExtra("Technology", "BluetoothLE")
+                .putExtra("TestType", testType.name)
+                .putExtra("Role", "Receiver")
+        )
 
         val phy: Int =
             if (intent?.getStringExtra("PhyConfig") == "1M") {
@@ -126,7 +155,7 @@ class BluetoothReceiverService : BluetoothService() {
 
         if (intent != null) {
             bleScanner.startScan(null, scanSettings, bleScanCallback)
-            Log.i("Bluetooth-Receiver", "Started scanning")
+            LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Started scanning")
         }
 
         return super.onStartCommand(intent, flags, startId)
@@ -136,11 +165,15 @@ class BluetoothReceiverService : BluetoothService() {
     override fun onDestroy() {
         bleScanner.stopScan(bleScanCallback)
 
-        PersistenceService.Companion.persistData(receivedTransmissionPackets.toString())
+        PersistenceService.Companion.persistData(measurements.toString())
 
-        Log.i("Bluetooth-Receiver", "Stopped scanning")
+        LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Stopped scanning")
 
         applicationContext.stopService(Intent(applicationContext, PersistenceService::class.java))
+
+        if (testType == TestType.DistanceTest) {
+            applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
+        }
 
         super.onDestroy()
     }

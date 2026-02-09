@@ -45,23 +45,35 @@
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.PersistenceService"
+            android:name=".Persistence.PersistenceService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.LocationService"
+            android:name=".Location.LocationService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.Bluetooth.BluetoothReceiverService"
+            android:name=".CommunicationServices.BluetoothLe.BluetoothLeReceiver"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.Bluetooth.BluetoothSenderService"
+            android:name=".CommunicationServices.BluetoothLe.BluetoothLeSender"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.Bluetooth.BluetoothService"
+            android:name=".CommunicationServices.BluetoothLe.BluetoothLeService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".CommunicationServices.BluetoothLe.BatteryTest.BluetoothReceiverServiceBatteryTest"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".CommunicationServices.BluetoothLe.BatteryTest.BluetoothSenderLeServiceBatteryTest"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".CommunicationServices.BluetoothLe.BatteryTest.BluetoothServiceBatteryTest"
             android:enabled="true"
             android:exported="true" />
 

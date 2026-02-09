@@ -1,17 +1,19 @@
-package com.leopoldbialek.measurementapp.CommunicationServices
+package com.leopoldbialek.measurementapp.Location
 
 import android.Manifest
 import android.app.Service
 import android.content.Intent
-import android.location.Location
+import android.location.GnssAntennaInfo
+import android.location.LocationListener
 import android.location.LocationManager
-import android.location.LocationManager.GPS_PROVIDER
 import android.location.LocationRequest
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
+import com.leopoldbialek.measurementapp.Misc.Coordinates
+import com.leopoldbialek.measurementapp.Misc.LogController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 
@@ -21,6 +23,16 @@ class LocationService : Service() {
     }
 
     private lateinit var locationManager: LocationManager
+
+    val locationListener: LocationListener = LocationListener { location ->
+        currentCoordinates = Coordinates(location.longitude, location.latitude)
+
+        LogController.log(
+            Log.DEBUG,
+            "Location-Service",
+            "Location changed to (lat/long): ${location.latitude}/${location.longitude}"
+        )
+    }
 
     override fun onBind(intent: Intent): IBinder {
         TODO("Return the communication channel to the service.")
@@ -40,7 +52,7 @@ class LocationService : Service() {
         val status: Int = super.onStartCommand(intent, flags, startId)
 
         locationManager.getCurrentLocation(
-            GPS_PROVIDER,
+            LocationManager.GPS_PROVIDER,
             null,
             Dispatchers.Main.asExecutor()
         )
@@ -51,19 +63,17 @@ class LocationService : Service() {
         }
 
         locationManager.requestLocationUpdates(
-            GPS_PROVIDER,
+            LocationManager.GPS_PROVIDER,
             LocationRequest.Builder(100).build(),
-            Dispatchers.Main.asExecutor()
+            Dispatchers.Main.asExecutor(), locationListener
         )
-        { location ->
-            currentCoordinates = Coordinates(location.longitude, location.latitude)
-
-            Log.d(
-                "Location-Service",
-                "Location changed to (lat/long): ${location.latitude}/${location.longitude}"
-            )
-        }
 
         return status
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        locationManager.removeUpdates(locationListener)
     }
 }

@@ -1,4 +1,4 @@
-package com.leopoldbialek.measurementapp.CommunicationServices
+package com.leopoldbialek.measurementapp.Persistence
 
 import android.app.Service
 import android.content.Intent
@@ -12,6 +12,9 @@ import java.time.LocalDateTime
 class PersistenceService : Service() {
     companion object {
         private lateinit var fileWriter: FileWriter
+        private lateinit var technology: String
+        private lateinit var testType: String
+        private lateinit var role: String
 
         fun persistData(dataToPersist: String) {
             fileWriter.write(dataToPersist)
@@ -31,12 +34,18 @@ class PersistenceService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if(intent != null){
+            technology = intent.getStringExtra("Technology").toString()
+            testType = intent.getStringExtra("TestType").toString()
+            role = intent.getStringExtra("Role").toString()
+        }
+
         if (!File(measurementFilesDir).exists()) {
             File(measurementFilesDir).mkdir()
         }
 
         measurementFile = File(
-            measurementFilesDir + LocalDateTime.now().toString()
+            measurementFilesDir + technology + "_" + testType + "_" + role + "_" + LocalDateTime.now().toString()
                 .replace("T", "_")
                 .replace(":", "-") + ".txt"
         )

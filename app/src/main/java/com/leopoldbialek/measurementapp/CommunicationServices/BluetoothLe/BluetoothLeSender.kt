@@ -1,4 +1,4 @@
-package com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth
+package com.leopoldbialek.measurementapp.CommunicationServices.BluetoothLe
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -14,23 +14,26 @@ import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresPermission
-import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
-import com.leopoldbialek.measurementapp.CommunicationServices.TransmissionPaket
+import com.leopoldbialek.measurementapp.Location.LocationService
+import com.leopoldbialek.measurementapp.TransmissionData.TransmissionPaket
 import com.leopoldbialek.measurementapp.MainActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import com.leopoldbialek.measurementapp.Misc.LogController
+import com.leopoldbialek.measurementapp.Misc.TestType
 import java.time.LocalDateTime
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import java.time.Instant
+import java.util.TimeZone
 import java.util.concurrent.atomic.AtomicBoolean
 
-class BluetoothSenderService() : BluetoothService() {
+class BluetoothLeSender() : BluetoothLeService() {
     private lateinit var bleAdvertiser: BluetoothLeAdvertiser
     private lateinit var advertisingData: AdvertiseData
     private lateinit var currentAdvertisingSet: AdvertisingSet
     private lateinit var advertisingSetParameters: AdvertisingSetParameters
+
     private val isAdvertising: AtomicBoolean = AtomicBoolean(false)
+
 
     @SuppressLint("MissingPermission")
     private val advertiseDataUpdater: Thread = Thread {
@@ -44,12 +47,16 @@ class BluetoothSenderService() : BluetoothService() {
                     Json.encodeToString(
                         TransmissionPaket(
                             MainActivity.deviceUUID.toString(),
-                            LocationService.currentCoordinates.toString(),
+                            coordinatesSender = if (testType == TestType.DistanceTest) {
+                                LocationService.currentCoordinates.toString()
+                            } else {
+                                ""
+                            },
                             batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY)
                                 .toString(),
                             LocalDateTime.ofInstant(
                                 Instant.ofEpochMilli(System.currentTimeMillis()),
-                                java.util.TimeZone.getDefault().toZoneId()
+                                TimeZone.getDefault().toZoneId()
                             ).toString()
                         )
                     ).encodeToByteArray()
@@ -58,11 +65,9 @@ class BluetoothSenderService() : BluetoothService() {
 
             currentAdvertisingSet.setAdvertisingData(advertisingData)
 
-            Log.d("Bluetooth-Sender", "Updated advertising data")
+            LogController.log(Log.DEBUG,"Bluetooth-Sender", "Updated advertising data!")
         }
     }
-
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
 
     private val advertisingSetCallback: AdvertisingSetCallback = object : AdvertisingSetCallback() {
         @RequiresPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
@@ -76,55 +81,20 @@ class BluetoothSenderService() : BluetoothService() {
 
                 isAdvertising.set(true)
 
-                /*
-                Previously used coroutine for updating timestamp -> now switched to threads
-
-               coroutineScope.launch {
-                    while (true) {
-                        advertisingData = AdvertiseData
-                            .Builder()
-                            .addServiceUuid(serviceUUID)
-                            .setIncludeDeviceName(true)
-                            .addServiceData(
-                                serviceUUID,
-                                Json.encodeToString(
-                                    TransmissionPaket(
-                                        MainActivity.deviceUUID.toString(),
-                                        LocationService.currentCoordinates.toString(),
-                                        batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY)
-                                            .toString(),
-                                        LocalDateTime.ofInstant(
-                                            Instant.ofEpochMilli(System.currentTimeMillis()),
-                                            java.util.TimeZone.getDefault().toZoneId()
-                                        ).toString()
-                                        //LocalDateTime.now().toString()
-                                    )
-                                ).encodeToByteArray()
-                            )
-                            .build()
-
-                        currentAdvertisingSet.setAdvertisingData(advertisingData)
-
-                        Log.d("Bluetooth-Sender", "Updated advertising data")
-
-                        delay(1)
-                    }
-                }
-                */
                 advertiseDataUpdater.start()
             }
 
             if (status == ADVERTISE_SUCCESS) {
-                Log.i("Bluetooth-Sender", "Advertising started successfully")
+                LogController.log(Log.INFO,"Bluetooth-LE-Sender", "Advertising started successfully!")
             } else {
-                Log.e("Bluetooth-Sender", "Error when starting advertising")
+                LogController.log(Log.INFO,"Bluetooth-LE-Sender", "Error when starting advertising!")
             }
 
             super.onAdvertisingSetStarted(advertisingSet, txPower, status)
         }
 
         override fun onAdvertisingSetStopped(advertisingSet: AdvertisingSet?) {
-            Log.i("Bluetooth-Sender", "Advertising stopped")
+            LogController.log(Log.INFO,"Bluetooth-LE-Sender", "Advertising stopped!")
 
             super.onAdvertisingSetStopped(advertisingSet)
         }
@@ -140,6 +110,15 @@ class BluetoothSenderService() : BluetoothService() {
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null && intent.getStringExtra("TestType") == "Distance Test") {
+            applicationContext.startService(Intent(applicationContext, LocationService::class.java))
+
+            testType = TestType.DistanceTest
+        }
+        else{
+            testType = TestType.BatteryTest
+        }
+
         bleAdvertiser = blAdapter.bluetoothLeAdvertiser
 
         val primaryPhy: Int =
@@ -175,7 +154,11 @@ class BluetoothSenderService() : BluetoothService() {
                 Json.encodeToString(
                     TransmissionPaket(
                         MainActivity.deviceUUID.toString(),
-                        LocationService.currentCoordinates.toString(),
+                        coordinatesSender = if (testType == TestType.DistanceTest) {
+                            LocationService.currentCoordinates.toString()
+                        } else {
+                            ""
+                        },
                         batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY).toString(),
                         LocalDateTime.now().toString()
                     )
@@ -206,7 +189,8 @@ class BluetoothSenderService() : BluetoothService() {
 
         bleAdvertiser.stopAdvertisingSet(advertisingSetCallback)
 
-        // Previously used coroutine for updating timestamp -> now switched to threads
-        //coroutineScope.cancel()
+        if (testType == TestType.DistanceTest) {
+            applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
+        }
     }
 }
