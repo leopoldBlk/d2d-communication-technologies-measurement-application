@@ -62,6 +62,8 @@ class BluetoothSenderService() : BluetoothService() {
         }
     }
 
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
+
     private val advertisingSetCallback: AdvertisingSetCallback = object : AdvertisingSetCallback() {
         @RequiresPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
         override fun onAdvertisingSetStarted(
