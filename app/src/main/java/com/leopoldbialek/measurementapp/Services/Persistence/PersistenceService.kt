@@ -1,9 +1,8 @@
-package com.leopoldbialek.measurementapp.Persistence
+package com.leopoldbialek.measurementapp.Services.Persistence
 
 import android.app.Service
 import android.content.Intent
 import android.os.Environment
-import android.os.Environment.DIRECTORY_DOCUMENTS
 import android.os.IBinder
 import java.io.File
 import java.io.FileWriter
@@ -25,7 +24,7 @@ class PersistenceService : Service() {
     private lateinit var measurementFile: File
 
     private val measurementFilesDir =
-        Environment.getExternalStoragePublicDirectory(DIRECTORY_DOCUMENTS)
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
             .toString() + "/Measurements/"
 
 
@@ -45,7 +44,8 @@ class PersistenceService : Service() {
         }
 
         measurementFile = File(
-            measurementFilesDir + technology + "_" + testType + "_" + role + "_" + LocalDateTime.now().toString()
+            measurementFilesDir + technology + "_" + testType + "_" + role + "_" + LocalDateTime.now()
+                .toString()
                 .replace("T", "_")
                 .replace(":", "-") + ".txt"
         )

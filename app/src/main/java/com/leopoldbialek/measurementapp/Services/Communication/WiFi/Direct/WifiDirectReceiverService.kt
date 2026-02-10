@@ -1,4 +1,4 @@
-package com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Direct
+package com.leopoldbialek.measurementapp.Services.Communication.WiFi.Direct
 
 import android.Manifest
 import android.annotation.SuppressLint

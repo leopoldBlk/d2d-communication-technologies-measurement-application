@@ -1,4 +1,4 @@
-package com.leopoldbialek.measurementapp.Misc
+package com.leopoldbialek.measurementapp.Utils
 
 import android.util.Log
 

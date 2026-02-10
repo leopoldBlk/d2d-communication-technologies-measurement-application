@@ -1,11 +1,11 @@
-package com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Aware
+package com.leopoldbialek.measurementapp.Services.Communication.WiFi.Aware
 
 import android.app.Service
 import android.net.wifi.aware.WifiAwareManager
 import android.net.wifi.aware.WifiAwareSession
 import android.os.BatteryManager
 import android.os.ParcelUuid
-import com.leopoldbialek.measurementapp.Misc.TestType
+import com.leopoldbialek.measurementapp.Enums.TestType
 import java.util.UUID
 
 abstract class WifiAwareService : Service() {

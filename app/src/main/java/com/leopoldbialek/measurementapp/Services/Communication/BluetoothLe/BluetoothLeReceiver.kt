@@ -1,4 +1,4 @@
-package com.leopoldbialek.measurementapp.CommunicationServices.BluetoothLe
+package com.leopoldbialek.measurementapp.Services.Communication.BluetoothLe
 
 import android.Manifest
 import android.bluetooth.BluetoothDevice
@@ -14,17 +14,17 @@ import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.RequiresPermission
-import com.leopoldbialek.measurementapp.Location.LocationService
-import com.leopoldbialek.measurementapp.Persistence.Measurement
-import com.leopoldbialek.measurementapp.Persistence.PersistenceService
-import com.leopoldbialek.measurementapp.TransmissionData.TransmissionPaket
-import com.leopoldbialek.measurementapp.MainActivity
-import com.leopoldbialek.measurementapp.Misc.LogController
-import com.leopoldbialek.measurementapp.Misc.TestType
+import com.leopoldbialek.measurementapp.DataClasses.Measurement
+import com.leopoldbialek.measurementapp.DataClasses.TransmissionPaket
+import com.leopoldbialek.measurementapp.Enums.TestType
+import com.leopoldbialek.measurementapp.Services.Location.LocationService
+import com.leopoldbialek.measurementapp.Services.Persistence.PersistenceService
+import com.leopoldbialek.measurementapp.Utils.LogController
 import kotlinx.serialization.json.Json
-import java.time.LocalDateTime
 import java.time.Instant
+import java.time.LocalDateTime
 import java.util.TimeZone
+import java.util.UUID
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
@@ -82,8 +82,8 @@ class BluetoothLeReceiver : BluetoothLeService() {
                         receivedTransmissionPacket.coordinatesSender,
                         receivedTransmissionPacket.batteryLevelSender,
                         receivedTransmissionPacket.timestampSending,
-                        MainActivity.deviceUUID.toString(),
-                        coordinatesReceiver = if (testType == TestType.DistanceTest) {
+                        UUID.randomUUID().toString(),
+                        coordinatesReceiver = if (testType == TestType.DISTANCE) {
                             LocationService.currentCoordinates.toString()
                         } else {
                             ""
@@ -125,10 +125,9 @@ class BluetoothLeReceiver : BluetoothLeService() {
         if (intent != null && intent.getStringExtra("TestType") == "Distance Test") {
             applicationContext.startService(Intent(applicationContext, LocationService::class.java))
 
-            testType = TestType.DistanceTest
-        }
-        else{
-            testType = TestType.BatteryTest
+            testType = TestType.DISTANCE
+        } else {
+            testType = TestType.BATTERY
         }
 
         applicationContext.startService(
@@ -171,7 +170,7 @@ class BluetoothLeReceiver : BluetoothLeService() {
 
         applicationContext.stopService(Intent(applicationContext, PersistenceService::class.java))
 
-        if (testType == TestType.DistanceTest) {
+        if (testType == TestType.DISTANCE) {
             applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
         }
 

@@ -25,55 +25,43 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MeasurementApp">
         <service
-            android:name=".CommunicationServices.WiFi.Direct.WifiDirectReceiverService"
+            android:name=".Services.Communication.WiFi.Direct.WifiDirectReceiverService"
             android:enabled="true"
             android:exported="true"></service>
         <service
-            android:name=".CommunicationServices.WiFi.Direct.WifiDirectSenderService"
+            android:name=".Services.Communication.WiFi.Direct.WifiDirectSenderService"
             android:enabled="true"
             android:exported="true"></service>
         <service
-            android:name=".CommunicationServices.WiFi.Aware.WifiAwareService"
+            android:name=".Services.Communication.WiFi.Aware.WifiAwareService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.WiFi.Aware.WifiAwareReceiverService"
+            android:name=".Services.Communication.WiFi.Aware.WifiAwareReceiverService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.WiFi.Aware.WifiAwareSenderService"
+            android:name=".Services.Communication.WiFi.Aware.WifiAwareSenderService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".Persistence.PersistenceService"
+            android:name=".Services.Persistence.PersistenceService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".Location.LocationService"
+            android:name=".Services.Location.LocationService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.BluetoothLe.BluetoothLeReceiver"
+            android:name=".Services.Communication.BluetoothLe.BluetoothLeReceiver"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.BluetoothLe.BluetoothLeSender"
+            android:name=".Services.Communication.BluetoothLe.BluetoothLeSender"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.BluetoothLe.BluetoothLeService"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".CommunicationServices.BluetoothLe.BatteryTest.BluetoothReceiverServiceBatteryTest"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".CommunicationServices.BluetoothLe.BatteryTest.BluetoothSenderLeServiceBatteryTest"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".CommunicationServices.BluetoothLe.BatteryTest.BluetoothServiceBatteryTest"
+            android:name=".Services.Communication.BluetoothLe.BluetoothLeService"
             android:enabled="true"
             android:exported="true" />
 

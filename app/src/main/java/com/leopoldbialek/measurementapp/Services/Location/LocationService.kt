@@ -1,9 +1,8 @@
-package com.leopoldbialek.measurementapp.Location
+package com.leopoldbialek.measurementapp.Services.Location
 
 import android.Manifest
 import android.app.Service
 import android.content.Intent
-import android.location.GnssAntennaInfo
 import android.location.LocationListener
 import android.location.LocationManager
 import android.location.LocationRequest
@@ -12,8 +11,8 @@ import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
-import com.leopoldbialek.measurementapp.Misc.Coordinates
-import com.leopoldbialek.measurementapp.Misc.LogController
+import com.leopoldbialek.measurementapp.DataClasses.Coordinates
+import com.leopoldbialek.measurementapp.Utils.LogController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 

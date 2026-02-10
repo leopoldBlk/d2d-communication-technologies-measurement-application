@@ -1,7 +1,6 @@
-package com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Direct
+package com.leopoldbialek.measurementapp.Services.Communication.WiFi.Direct
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Intent
 import android.net.wifi.p2p.WifiP2pManager

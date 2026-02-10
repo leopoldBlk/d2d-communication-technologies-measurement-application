@@ -1,11 +1,11 @@
-package com.leopoldbialek.measurementapp.CommunicationServices.BluetoothLe
+package com.leopoldbialek.measurementapp.Services.Communication.BluetoothLe
 
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.os.BatteryManager
 import android.os.ParcelUuid
-import com.leopoldbialek.measurementapp.Misc.TestType
+import com.leopoldbialek.measurementapp.Enums.TestType
 import java.util.UUID
 
 abstract class BluetoothLeService() : Service() {

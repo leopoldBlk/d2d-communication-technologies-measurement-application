@@ -1,4 +1,4 @@
-package com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Aware
+package com.leopoldbialek.measurementapp.Services.Communication.WiFi.Aware
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -13,15 +13,16 @@ import android.net.wifi.aware.ServiceDiscoveryInfo
 import android.net.wifi.aware.SubscribeConfig
 import android.net.wifi.aware.SubscribeDiscoverySession
 import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
-import com.leopoldbialek.measurementapp.Location.LocationService
-import com.leopoldbialek.measurementapp.Persistence.Measurement
-import com.leopoldbialek.measurementapp.Persistence.PersistenceService
-import com.leopoldbialek.measurementapp.TransmissionData.TransmissionPaket
+import com.leopoldbialek.measurementapp.Services.Location.LocationService
+import com.leopoldbialek.measurementapp.DataClasses.Measurement
+import com.leopoldbialek.measurementapp.Services.Persistence.PersistenceService
+import com.leopoldbialek.measurementapp.DataClasses.TransmissionPaket
 import com.leopoldbialek.measurementapp.MainActivity
-import com.leopoldbialek.measurementapp.Misc.LogController
-import com.leopoldbialek.measurementapp.Misc.TestType
+import com.leopoldbialek.measurementapp.Utils.LogController
+import com.leopoldbialek.measurementapp.Enums.TestType
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
+import java.util.UUID
 
 class WifiAwareReceiverService : WifiAwareService() {
     private val receivedTransmissionPackets: MutableList<Measurement> =
@@ -80,8 +81,8 @@ class WifiAwareReceiverService : WifiAwareService() {
                                         receivedTransmissionPacket.coordinatesSender,
                                         receivedTransmissionPacket.batteryLevelSender,
                                         receivedTransmissionPacket.timestampSending,
-                                        MainActivity.deviceUUID.toString(),
-                                        coordinatesReceiver = if (testType == TestType.DistanceTest) {
+                                        UUID.randomUUID().toString(),
+                                        coordinatesReceiver = if (testType == TestType.DISTANCE) {
                                             LocationService.currentCoordinates.toString()
                                         } else {
                                             ""
@@ -107,10 +108,10 @@ class WifiAwareReceiverService : WifiAwareService() {
         if (intent != null && intent.getStringExtra("TestType") == "Distance Test") {
             applicationContext.startService(Intent(applicationContext, LocationService::class.java))
 
-            testType = TestType.DistanceTest
+            testType = TestType.DISTANCE
         }
         else{
-            testType = TestType.BatteryTest
+            testType = TestType.BATTERY
         }
 
         applicationContext.startService(
