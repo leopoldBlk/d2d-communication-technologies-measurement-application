@@ -14,9 +14,11 @@ import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresPermission
-import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
-import com.leopoldbialek.measurementapp.CommunicationServices.TransmissionPaket
+import com.leopoldbialek.measurementapp.Location.LocationService
+import com.leopoldbialek.measurementapp.TransmissionData.TransmissionPaket
 import com.leopoldbialek.measurementapp.MainActivity
+import com.leopoldbialek.measurementapp.Misc.LogController
+import com.leopoldbialek.measurementapp.Misc.TestType
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
@@ -48,16 +50,17 @@ class WifiAwareSenderService : WifiAwareService() {
         super.onCreate()
 
         if (!applicationContext.packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE)) {
-            Log.e("Wifi-Aware-Sender: ", "Device does not support Wi-Fi Aware!")
+            LogController.log(Log.ERROR,"Wifi-Aware-Sender", "Device does not support Wi-Fi Aware!")
             stopSelf()
         } else {
-            Log.d("Wifi-Aware-Sender: ", "Started Service!")
+            LogController.log(Log.INFO,"Wifi-Aware-Sender", "Started Service!")
 
             wifiAwareManager =
                 applicationContext.getSystemService(WIFI_AWARE_SERVICE) as WifiAwareManager
 
             // Max Service Specific Info Length: 255 Bytes
-            val maxServiceSpecificInfoLength: Int? = wifiAwareManager.characteristics?.maxServiceSpecificInfoLength
+            val maxServiceSpecificInfoLength: Int? =
+                wifiAwareManager.characteristics?.maxServiceSpecificInfoLength
 
             wifiAwareManager.attach(object : AttachCallback() {
 
@@ -75,13 +78,30 @@ class WifiAwareSenderService : WifiAwareService() {
         }
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null && intent.getStringExtra("TestType") == "Distance Test") {
+            applicationContext.startService(Intent(applicationContext, LocationService::class.java))
+
+            testType = TestType.DistanceTest
+        } else {
+            testType = TestType.BatteryTest
+        }
+
+        return super.onStartCommand(intent, flags, startId)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
 
         isPublishing.set(false)
 
         wifiAwareSession.close()
-        Log.d("Wifi-Aware-Sender: ", "Stopped Service!")
+
+        if (testType == TestType.DistanceTest) {
+            applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
+        }
+
+        LogController.log(Log.DEBUG,"Wifi-Aware-Sender", "Stopped Service!")
     }
 
     //TODO: Find another solution, not sure about recursive invocation
@@ -98,7 +118,11 @@ class WifiAwareSenderService : WifiAwareService() {
                     Json.encodeToString(
                         TransmissionPaket(
                             MainActivity.deviceUUID.toString(),
-                            LocationService.currentCoordinates.toString(),
+                            coordinatesSender = if (testType == TestType.DistanceTest) {
+                                LocationService.currentCoordinates.toString()
+                            } else {
+                                ""
+                            },
                             batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY)
                                 .toString(),
                             LocalDateTime.ofInstant(
@@ -115,9 +139,7 @@ class WifiAwareSenderService : WifiAwareService() {
                 override fun onPublishStarted(session: PublishDiscoverySession) {
                     super.onPublishStarted(session)
 
-                    //isPublishing = true
-
-                    Log.d("Wifi-Aware-Sender", "Publishing Started!")
+                    LogController.log(Log.DEBUG,"Wifi-Aware-Sender", "Publishing Started!")
                 }
 
                 override fun onSessionTerminated() {

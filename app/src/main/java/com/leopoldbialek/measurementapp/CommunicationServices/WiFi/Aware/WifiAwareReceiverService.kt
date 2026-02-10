@@ -13,11 +13,13 @@ import android.net.wifi.aware.ServiceDiscoveryInfo
 import android.net.wifi.aware.SubscribeConfig
 import android.net.wifi.aware.SubscribeDiscoverySession
 import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
-import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
-import com.leopoldbialek.measurementapp.CommunicationServices.Measurement
-import com.leopoldbialek.measurementapp.CommunicationServices.PersistenceService
-import com.leopoldbialek.measurementapp.CommunicationServices.TransmissionPaket
+import com.leopoldbialek.measurementapp.Location.LocationService
+import com.leopoldbialek.measurementapp.Persistence.Measurement
+import com.leopoldbialek.measurementapp.Persistence.PersistenceService
+import com.leopoldbialek.measurementapp.TransmissionData.TransmissionPaket
 import com.leopoldbialek.measurementapp.MainActivity
+import com.leopoldbialek.measurementapp.Misc.LogController
+import com.leopoldbialek.measurementapp.Misc.TestType
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 
@@ -35,13 +37,11 @@ class WifiAwareReceiverService : WifiAwareService() {
     override fun onCreate() {
         super.onCreate()
 
-        applicationContext.startService(Intent(applicationContext, PersistenceService::class.java))
-
         if (!applicationContext.packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE)) {
-            Log.e("Wifi-Aware-Receiver: ", "Device does not support Wi-Fi Aware!")
+            LogController.log(Log.ERROR,"Wifi-Aware-Receiver", "Device does not support Wi-Fi Aware!")
             stopSelf()
         } else {
-            Log.d("Wifi-Aware-Receiver: ", "Started Service!")
+            LogController.log(Log.INFO,"Wifi-Aware-Receiver", "Started Service!")
 
             wifiAwareManager =
                 applicationContext.getSystemService(WIFI_AWARE_SERVICE) as WifiAwareManager
@@ -59,7 +59,7 @@ class WifiAwareReceiverService : WifiAwareService() {
                                 override fun onSubscribeStarted(session: SubscribeDiscoverySession) {
                                     super.onSubscribeStarted(session)
 
-                                    Log.d("Wifi-Aware-Receiver", "Started Discovery!")
+                                    LogController.log(Log.DEBUG,"Wifi-Aware-Receiver", "Started Discovery!")
                                 }
 
                                 override fun onServiceDiscovered(info: ServiceDiscoveryInfo) {
@@ -81,7 +81,11 @@ class WifiAwareReceiverService : WifiAwareService() {
                                         receivedTransmissionPacket.batteryLevelSender,
                                         receivedTransmissionPacket.timestampSending,
                                         MainActivity.deviceUUID.toString(),
-                                        LocationService.currentCoordinates.toString(),
+                                        coordinatesReceiver = if (testType == TestType.DistanceTest) {
+                                            LocationService.currentCoordinates.toString()
+                                        } else {
+                                            ""
+                                        },
                                         batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY)
                                             .toString(),
                                         timestampReceiving.toString()
@@ -89,7 +93,7 @@ class WifiAwareReceiverService : WifiAwareService() {
 
                                     receivedTransmissionPackets.add(measurement)
 
-                                    Log.i("Wifi-Aware-Receiver", "Received Data: ${measurement}")
+                                    LogController.log(Log.INFO,"Wifi-Aware-Receiver", "Received Data: ${measurement}")
                                 }
                             }, null
                         )
@@ -99,6 +103,26 @@ class WifiAwareReceiverService : WifiAwareService() {
         }
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null && intent.getStringExtra("TestType") == "Distance Test") {
+            applicationContext.startService(Intent(applicationContext, LocationService::class.java))
+
+            testType = TestType.DistanceTest
+        }
+        else{
+            testType = TestType.BatteryTest
+        }
+
+        applicationContext.startService(
+            Intent(applicationContext, PersistenceService::class.java)
+                .putExtra("Technology", "WifiAware")
+                .putExtra("TestType", testType.name)
+                .putExtra("Role", "Receiver")
+        )
+
+        return super.onStartCommand(intent, flags, startId)
+    }
+
     //TODO: Super implementations at the beginning of method or at the end?
     override fun onDestroy() {
         wifiAwareSession.close()
@@ -106,7 +130,7 @@ class WifiAwareReceiverService : WifiAwareService() {
         PersistenceService.Companion.persistData(receivedTransmissionPackets.toString())
         applicationContext.stopService(Intent(applicationContext, PersistenceService::class.java))
 
-        Log.d("Wifi-Aware-Receiver: ", "Stopped Service!")
+        LogController.log(Log.DEBUG,"Wifi-Aware-Receiver", "Stopped Service!")
 
         super.onDestroy()
     }

@@ -25,13 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.BluetoothReceiverService
-import com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth.BluetoothSenderService
-import com.leopoldbialek.measurementapp.CommunicationServices.LocationService
+import com.leopoldbialek.measurementapp.CommunicationServices.BluetoothLe.BluetoothLeReceiver
+import com.leopoldbialek.measurementapp.CommunicationServices.BluetoothLe.BluetoothLeSender
 import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Aware.WifiAwareReceiverService
 import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Aware.WifiAwareSenderService
-import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Direct.WifiDirectReceiverService
-import com.leopoldbialek.measurementapp.CommunicationServices.WiFi.Direct.WifiDirectSenderService
 import com.leopoldbialek.measurementapp.ui.theme.MeasurementAppTheme
 import java.util.UUID
 
@@ -41,8 +38,11 @@ class MainActivity : ComponentActivity() {
     }
 
     val technologies: List<String> = listOf<String>(
-        "Bluetooth LE",
-        "Wi-Fi Aware"
+        "Bluetooth LE", "Wi-Fi Aware"
+    )
+
+    val tests: List<String> = listOf<String>(
+        "Distance Test", "Battery Test"
     )
 
     val bluetoothLeSendConfigPrimaryPhy: List<String> = listOf("1M", "LE Coded")
@@ -66,8 +66,7 @@ class MainActivity : ComponentActivity() {
                 android.Manifest.permission.CHANGE_NETWORK_STATE,
                 android.Manifest.permission.INTERNET,
                 android.Manifest.permission.NEARBY_WIFI_DEVICES,
-            ),
-            1
+            ), 1
         )
 
         super.onCreate(savedInstanceState)
@@ -80,7 +79,8 @@ class MainActivity : ComponentActivity() {
                     bluetoothLeSendConfigPrimaryPhy,
                     bluetoothLeSendConfigSecondaryPhy,
                     bluetoothLeReceiveConfigPhy,
-                    roles
+                    roles,
+                    tests
                 )
             }
         }
@@ -88,8 +88,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-
-        applicationContext.startService(Intent(applicationContext, LocationService::class.java))
 
         //applicationContext.startService(Intent(applicationContext, WifiDirectSenderService::class.java))
 
@@ -104,7 +102,8 @@ fun MeasurementSelection(
     bluetoothLeSendConfigPrimaryPhy: List<String>,
     bluetoothLeSendConfigSecondaryPhy: List<String>,
     bluetoothLeReceiveConfigPhy: List<String>,
-    roles: List<String>
+    roles: List<String>,
+    tests: List<String>
 ) {
     val (selectedTechnology, onTechnologyChanged) = remember { mutableStateOf(technologies[0]) }
     val (selectedBluetoothLeSendConfigPrimaryPhy, onBluetoothLeSendConfigPrimaryPhyChanged) = remember {
@@ -124,23 +123,22 @@ fun MeasurementSelection(
     }
 
     val (selectedRole, onRoleChanged) = remember { mutableStateOf(roles[0]) }
+
+    val (selectedTest, onTestSelectionChanged) = remember { mutableStateOf(tests[0]) }
+
     val (runningMeasurement, onMeasurementStateChanged) = remember {
         mutableStateOf(
             listOf<Boolean>(
-                false,
-                true
+                false, true
             )[0]
         )
     }
 
     Column(
-        Modifier
-            .padding(start = 25.dp),
-        Arrangement.spacedBy(50.dp)
+        Modifier.padding(start = 25.dp), Arrangement.spacedBy(50.dp)
     ) {
         Spacer(
-            Modifier
-                .height(75.dp)
+            Modifier.height(75.dp)
         )
         TechnologySelection(
             technologies,
@@ -159,6 +157,7 @@ fun MeasurementSelection(
             runningMeasurement
         )
         RoleSelection(roles, selectedRole, onRoleChanged, runningMeasurement)
+        TestSelection(tests, selectedTest, onTestSelectionChanged, runningMeasurement)
         ControlButtons(
             context,
             selectedRole,
@@ -166,6 +165,7 @@ fun MeasurementSelection(
             selectedBluetoothLeSendConfigPrimaryPhy,
             selectedBluetoothLeSendConfigSecondaryPhy,
             selectedBluetoothLeReceiveConfigPhy,
+            selectedTest,
             runningMeasurement,
             onMeasurementStateChanged
         )
@@ -257,8 +257,7 @@ fun BluetoothLeConfig(
                 Spacer(Modifier.height(12.dp))
 
                 Text(
-                    technology,
-                    fontSize = 18.sp, fontWeight = FontWeight.Bold
+                    technology, fontSize = 18.sp, fontWeight = FontWeight.Bold
                 )
 
                 Spacer(Modifier.height(15.dp))
@@ -278,8 +277,7 @@ fun BluetoothLeConfig(
                                         enabled = !runningMeasurement && technology == selectedTechnology
                                     )
                                     Text(
-                                        phyConfig,
-                                        Modifier.align(Alignment.CenterVertically)
+                                        phyConfig, Modifier.align(Alignment.CenterVertically)
                                     )
                                 }
                             }
@@ -300,8 +298,7 @@ fun BluetoothLeConfig(
                                         enabled = !runningMeasurement && technology == selectedTechnology
                                     )
                                     Text(
-                                        phyConfig,
-                                        Modifier.align(Alignment.CenterVertically)
+                                        phyConfig, Modifier.align(Alignment.CenterVertically)
                                     )
                                 }
                             }
@@ -311,15 +308,12 @@ fun BluetoothLeConfig(
                     bluetoothLeReceiveConfigPhy.forEach { phyConfig ->
                         Row() {
                             RadioButton(
-                                phyConfig == selectedBluetoothLeReceiveConfigPhy,
-                                {
+                                phyConfig == selectedBluetoothLeReceiveConfigPhy, {
                                     onBluetoothLeReceiveConfigPhyChanged(phyConfig)
-                                },
-                                enabled = !runningMeasurement && technology == selectedTechnology
+                                }, enabled = !runningMeasurement && technology == selectedTechnology
                             )
                             Text(
-                                phyConfig,
-                                Modifier.align(Alignment.CenterVertically)
+                                phyConfig, Modifier.align(Alignment.CenterVertically)
                             )
                         }
                     }
@@ -347,7 +341,8 @@ fun WifiAwareConfig(
         Text(
             technology,
             Modifier.align(Alignment.CenterVertically),
-            fontSize = 18.sp, fontWeight = FontWeight.Bold
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
         )
     }
 }
@@ -359,8 +354,6 @@ fun RoleSelection(
     onRoleChanged: (String) -> Unit,
     runningMeasurement: Boolean
 ) {
-
-
     Column() {
         Text("Role for the Measurement", fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
@@ -369,19 +362,44 @@ fun RoleSelection(
         roles.forEach { role ->
             Row() {
                 RadioButton(
-                    role == selectedRole,
-                    {
+                    role == selectedRole, {
                         onRoleChanged(role)
-                    },
-                    enabled = !runningMeasurement
+                    }, enabled = !runningMeasurement
                 )
                 Text(
-                    role,
-                    Modifier.align(Alignment.CenterVertically)
+                    role, Modifier.align(Alignment.CenterVertically)
                 )
             }
         }
     }
+}
+
+@Composable
+fun TestSelection(
+    tests: List<String>,
+    selectedTest: String,
+    onTestSelectionChanged: (String) -> Unit,
+    runningMeasurement: Boolean
+) {
+    Column() {
+        Text("Test to Perform", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+
+        Spacer(Modifier.height(5.dp))
+
+        tests.forEach { test ->
+            Row() {
+                RadioButton(
+                    test == selectedTest, {
+                        onTestSelectionChanged(test)
+                    }, enabled = !runningMeasurement
+                )
+                Text(
+                    test, Modifier.align(Alignment.CenterVertically)
+                )
+            }
+        }
+    }
+
 }
 
 @Composable
@@ -392,12 +410,12 @@ fun ControlButtons(
     selectedBluetoothLeConfigPrimaryPhy: String,
     selectedBluetoothLeConfigSecondaryPhy: String,
     selectedBluetoothLeReceiveConfigPhy: String,
+    selectedTest: String,
     runningMeasurement: Boolean,
     onMeasurementStateChanged: (Boolean) -> Unit
 ) {
     Column(
-        Modifier.padding(end = 25.dp),
-        Arrangement.spacedBy(10.dp)
+        Modifier.padding(end = 25.dp), Arrangement.spacedBy(10.dp)
     ) {
         Button(
             {
@@ -405,31 +423,27 @@ fun ControlButtons(
                     if (selectedTechnology == "Bluetooth LE") {
                         context.startService(
                             Intent(
-                                context,
-                                BluetoothSenderService::class.java
+                                context, BluetoothLeSender::class.java
                             )
                                 .putExtra(
-                                    "DeviceUUID",
-                                    MainActivity.deviceUUID
+                                    "TestType", selectedTest
                                 )
                                 .putExtra(
-                                    "PrimaryPhyConfig",
-                                    selectedBluetoothLeConfigPrimaryPhy
-                                )
-                                .putExtra(
-                                    "SecondaryPhyConfig",
-                                    selectedBluetoothLeConfigSecondaryPhy
+                                    "PrimaryPhyConfig", selectedBluetoothLeConfigPrimaryPhy
+                                ).putExtra(
+                                    "SecondaryPhyConfig", selectedBluetoothLeConfigSecondaryPhy
                                 )
                         )
                     } else {
                         context.startService(
                             Intent(
-                                context,
-                                WifiAwareSenderService::class.java
+                                context, WifiAwareSenderService::class.java
                             )
                                 .putExtra(
-                                    "DeviceUUID",
-                                    MainActivity.deviceUUID
+                                    "TestType", selectedTest
+                                )
+                                .putExtra(
+                                    "DeviceUUID", MainActivity.deviceUUID
                                 )
                         )
                     }
@@ -438,27 +452,27 @@ fun ControlButtons(
                     if (selectedTechnology == "Bluetooth LE") {
                         context.startService(
                             Intent(
-                                context,
-                                BluetoothReceiverService::class.java
+                                context, BluetoothLeReceiver::class.java
                             )
                                 .putExtra(
-                                    "DeviceUUID",
-                                    MainActivity.deviceUUID
+                                    "TestType", selectedTest
                                 )
                                 .putExtra(
-                                    "PhyConfig",
-                                    selectedBluetoothLeReceiveConfigPhy
+                                    "DeviceUUID", MainActivity.deviceUUID
+                                ).putExtra(
+                                    "PhyConfig", selectedBluetoothLeReceiveConfigPhy
                                 )
                         )
                     } else {
                         context.startService(
                             Intent(
-                                context,
-                                WifiAwareReceiverService::class.java
+                                context, WifiAwareReceiverService::class.java
                             )
                                 .putExtra(
-                                    "DeviceUUID",
-                                    MainActivity.deviceUUID
+                                    "TestType", selectedTest
+                                )
+                                .putExtra(
+                                    "DeviceUUID", MainActivity.deviceUUID
                                 )
                         )
                     }
@@ -466,11 +480,9 @@ fun ControlButtons(
 
                 onMeasurementStateChanged(true)
                 //Toast.makeText(context, "Measurement Started", Toast.LENGTH_SHORT).show()
-            },
-            Modifier.fillMaxWidth(),
-            !runningMeasurement
+            }, Modifier.fillMaxWidth(), !runningMeasurement
         ) {
-            Text("Start")
+            Text("Start Test")
         }
         Button(
             {
@@ -478,15 +490,13 @@ fun ControlButtons(
                     if (selectedTechnology == "Bluetooth LE") {
                         context.stopService(
                             Intent(
-                                context,
-                                BluetoothSenderService::class.java
+                                context, BluetoothLeSender::class.java
                             )
                         )
                     } else {
                         context.stopService(
                             Intent(
-                                context,
-                                WifiAwareSenderService::class.java
+                                context, WifiAwareSenderService::class.java
                             )
                         )
                     }
@@ -494,15 +504,13 @@ fun ControlButtons(
                     if (selectedTechnology == "Bluetooth LE") {
                         context.stopService(
                             Intent(
-                                context,
-                                BluetoothReceiverService::class.java
+                                context, BluetoothLeReceiver::class.java
                             )
                         )
                     } else {
                         context.stopService(
                             Intent(
-                                context,
-                                WifiAwareReceiverService::class.java
+                                context, WifiAwareReceiverService::class.java
                             )
                         )
                     }
@@ -510,12 +518,9 @@ fun ControlButtons(
 
                 onMeasurementStateChanged(false)
                 //Toast.makeText(context, "Measurement Stopped", Toast.LENGTH_SHORT).show()
-            },
-            Modifier.fillMaxWidth(),
-            runningMeasurement
+            }, Modifier.fillMaxWidth(), runningMeasurement
         ) {
             Text("Stop")
         }
     }
 }
-

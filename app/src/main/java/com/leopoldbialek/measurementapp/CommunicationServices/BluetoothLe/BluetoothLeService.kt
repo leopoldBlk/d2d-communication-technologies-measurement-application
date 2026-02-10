@@ -1,20 +1,18 @@
-package com.leopoldbialek.measurementapp.CommunicationServices.Bluetooth
+package com.leopoldbialek.measurementapp.CommunicationServices.BluetoothLe
 
-import android.Manifest
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
-import android.content.Intent
 import android.os.BatteryManager
 import android.os.ParcelUuid
-import androidx.annotation.RequiresPermission
+import com.leopoldbialek.measurementapp.Misc.TestType
 import java.util.UUID
 
-abstract class BluetoothService() : Service() {
+abstract class BluetoothLeService() : Service() {
     protected lateinit var blManager: BluetoothManager
     protected lateinit var blAdapter: BluetoothAdapter
-
     protected lateinit var batteryManager: BatteryManager
+    protected lateinit var testType: TestType
 
     protected val serviceUUID: ParcelUuid =
         ParcelUuid

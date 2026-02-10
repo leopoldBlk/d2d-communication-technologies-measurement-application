@@ -1,9 +1,6 @@
-package com.leopoldbialek.measurementapp.CommunicationServices
+package com.leopoldbialek.measurementapp.Persistence
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.LongAsStringSerializer
-import java.time.LocalDateTime
-import java.util.UUID
 
 @Serializable
 data class Measurement(

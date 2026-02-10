@@ -1,4 +1,4 @@
-package com.leopoldbialek.measurementapp.CommunicationServices
+package com.leopoldbialek.measurementapp.TransmissionData
 
 import kotlinx.serialization.Serializable
 
