@@ -16,6 +16,7 @@ import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.Services.Location.LocationService
 import com.leopoldbialek.measurementapp.DataClasses.TransmissionPaket
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPhy
 import com.leopoldbialek.measurementapp.MainActivity
 import com.leopoldbialek.measurementapp.Utils.LogController
 import com.leopoldbialek.measurementapp.Enums.TestType
@@ -123,14 +124,14 @@ class BluetoothLeSender() : BluetoothLeService() {
         bleAdvertiser = blAdapter.bluetoothLeAdvertiser
 
         val primaryPhy: Int =
-            if (intent?.getStringExtra("PrimaryPhyConfig") == "1M") {
+            if (intent?.getStringExtra("PrimarySenderPhy") == BluetoothLeSenderPhy.PHY_1M.name) {
                 BluetoothDevice.PHY_LE_1M
             } else {
                 BluetoothDevice.PHY_LE_CODED
             }
 
         val secondaryPhy: Int =
-            if (intent?.getStringExtra("SecondaryPhyConfig") == "1M") {
+            if (intent?.getStringExtra("SecondarySenderPhy") == BluetoothLeSenderPhy.PHY_1M.name) {
                 BluetoothDevice.PHY_LE_1M
             } else {
                 BluetoothDevice.PHY_LE_CODED

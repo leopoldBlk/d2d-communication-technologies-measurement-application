@@ -16,10 +16,13 @@ import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.DataClasses.Measurement
 import com.leopoldbialek.measurementapp.DataClasses.TransmissionPaket
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeReceiverPhy
+import com.leopoldbialek.measurementapp.Enums.Role
+import com.leopoldbialek.measurementapp.Enums.Technology
 import com.leopoldbialek.measurementapp.Enums.TestType
 import com.leopoldbialek.measurementapp.Services.Location.LocationService
-import com.leopoldbialek.measurementapp.Services.Persistence.PersistenceService
 import com.leopoldbialek.measurementapp.Utils.LogController
+import com.leopoldbialek.measurementapp.Utils.PersistenceController
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.time.LocalDateTime
@@ -33,6 +36,8 @@ class BluetoothLeReceiver : BluetoothLeService() {
 
     private val measurements: MutableList<Measurement> =
         mutableListOf<Measurement>()
+
+    private lateinit var persistenceController: PersistenceController
 
     private val bleScanCallback: ScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
@@ -122,25 +127,16 @@ class BluetoothLeReceiver : BluetoothLeService() {
 
     @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent != null && intent.getStringExtra("TestType") == "Distance Test") {
-            applicationContext.startService(Intent(applicationContext, LocationService::class.java))
-
-            testType = TestType.DISTANCE
-        } else {
-            testType = TestType.BATTERY
-        }
-
-        applicationContext.startService(
-            Intent(applicationContext, PersistenceService::class.java)
-                .putExtra("Technology", "BluetoothLE")
-                .putExtra("TestType", testType.name)
-                .putExtra("Role", "Receiver")
+        persistenceController = PersistenceController(
+            Technology.BLUETOOTH_LE.name,
+            intent!!.getStringExtra("TestType")!!,
+            Role.RECEIVER.name
         )
 
         val phy: Int =
-            if (intent?.getStringExtra("PhyConfig") == "1M") {
+            if (intent?.getStringExtra("ReceiverPhy") == BluetoothLeReceiverPhy.PHY_1M.name) {
                 BluetoothDevice.PHY_LE_1M
-            } else if (intent?.getStringExtra("PhyConfig") == "LE Coded") {
+            } else if (intent?.getStringExtra("ReceiverPhy") == BluetoothLeReceiverPhy.PHY_LE_CODED.name) {
                 BluetoothDevice.PHY_LE_CODED
             } else {
                 PHY_LE_ALL_SUPPORTED
@@ -164,15 +160,9 @@ class BluetoothLeReceiver : BluetoothLeService() {
     override fun onDestroy() {
         bleScanner.stopScan(bleScanCallback)
 
-        PersistenceService.Companion.persistData(measurements.toString())
+        persistenceController.persistData(measurements.toString())
 
         LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Stopped scanning")
-
-        applicationContext.stopService(Intent(applicationContext, PersistenceService::class.java))
-
-        if (testType == TestType.DISTANCE) {
-            applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
-        }
 
         super.onDestroy()
     }
