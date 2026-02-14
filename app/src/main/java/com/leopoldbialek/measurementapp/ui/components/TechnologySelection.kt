@@ -21,7 +21,7 @@ fun TechnologySelection(
     selectedRole: Role,
     selectedBluetoothLeSenderPrimaryPhy: BluetoothLeSenderPhy,
     changeSelectedBluetoothLeSenderPrimaryPhy: (BluetoothLeSenderPhy) -> Unit,
-    selectedBluetoothLeConfigSecondaryPhy: BluetoothLeSenderPhy,
+    selectedBluetoothLeSenderSecondaryPhy: BluetoothLeSenderPhy,
     changeSelectedBluetoothLeSenderSecondaryPhy: (BluetoothLeSenderPhy) -> Unit,
     selectedBluetoothLeReceiverPhy: BluetoothLeReceiverPhy,
     changeSelectedBluetoothLeReceiverPhy: (BluetoothLeReceiverPhy) -> Unit,
@@ -48,7 +48,7 @@ fun TechnologySelection(
                             selectedTechnology,
                             selectedBluetoothLeSenderPrimaryPhy,
                             changeSelectedBluetoothLeSenderPrimaryPhy,
-                            selectedBluetoothLeConfigSecondaryPhy,
+                            selectedBluetoothLeSenderSecondaryPhy,
                             changeSelectedBluetoothLeSenderSecondaryPhy,
                             activeMeasurement
                         )

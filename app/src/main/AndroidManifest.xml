@@ -45,10 +45,6 @@
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".Services.Persistence.PersistenceService"
-            android:enabled="true"
-            android:exported="true" />
-        <service
             android:name=".Services.Location.LocationService"
             android:enabled="true"
             android:exported="true" />
