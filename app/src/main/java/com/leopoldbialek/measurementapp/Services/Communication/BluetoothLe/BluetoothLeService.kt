@@ -5,21 +5,21 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.os.BatteryManager
 import android.os.ParcelUuid
+import android.util.Log
 import com.leopoldbialek.measurementapp.Enums.TestType
+import com.leopoldbialek.measurementapp.Utils.LogController
 import java.util.UUID
 
 abstract class BluetoothLeService() : Service() {
+    protected lateinit var deviceUuid: ParcelUuid
     protected lateinit var blManager: BluetoothManager
     protected lateinit var blAdapter: BluetoothAdapter
     protected lateinit var batteryManager: BatteryManager
     protected lateinit var testType: TestType
 
+    private val checkSupportedBleFeatures: Boolean = false
     protected val serviceUUID: ParcelUuid =
-        ParcelUuid
-            .fromString(
-                UUID.fromString("11111111-2222-3333-4444-555555555555")
-                    .toString()
-            )
+        ParcelUuid(UUID.fromString("361f2683-ebbe-423c-bf78-e3e5efbf86f1"))
 
     override fun onCreate() {
         super.onCreate()
@@ -29,9 +29,21 @@ abstract class BluetoothLeService() : Service() {
 
         batteryManager = applicationContext.getSystemService(BATTERY_SERVICE) as BatteryManager
 
-        val isLe2MPhySupported: Boolean = blAdapter.isLe2MPhySupported
-        val isLeCodedPhySupported: Boolean = blAdapter.isLeCodedPhySupported
-        val isLeExtendedAdvertisingSupported: Boolean = blAdapter.isLeExtendedAdvertisingSupported
-        val isLePeriodicAdvertisingSupported: Boolean = blAdapter.isLePeriodicAdvertisingSupported
+        if (checkSupportedBleFeatures) {
+            val supportedBleFeatures: MutableMap<String, Boolean> = mutableMapOf(
+                "isLe2MPhySupported" to blAdapter.isLe2MPhySupported,
+                "isLeCodedPhySupported" to blAdapter.isLeCodedPhySupported,
+                "isLeExtendedAdvertisingSupported" to blAdapter.isLeExtendedAdvertisingSupported,
+                "isLePeriodicAdvertisingSupported" to blAdapter.isLePeriodicAdvertisingSupported
+            )
+
+            for (feature in supportedBleFeatures) {
+                if (feature.value) {
+                    LogController.log(Log.INFO, "Bluetooth-Le", "${feature.key}: ${feature.value}")
+                } else {
+                    LogController.log(Log.DEBUG, "Bluetooth-Le", "${feature.key}: ${feature.value}")
+                }
+            }
+        }
     }
 }

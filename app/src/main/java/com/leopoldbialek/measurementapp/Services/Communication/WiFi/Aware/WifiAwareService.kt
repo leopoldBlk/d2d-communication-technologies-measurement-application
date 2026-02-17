@@ -9,17 +9,14 @@ import com.leopoldbialek.measurementapp.Enums.TestType
 import java.util.UUID
 
 abstract class WifiAwareService : Service() {
+    protected lateinit var deviceUuid: ParcelUuid
     protected lateinit var wifiAwareManager: WifiAwareManager
     protected lateinit var wifiAwareSession: WifiAwareSession
     protected lateinit var batteryManager: BatteryManager
     protected lateinit var testType: TestType
 
     protected val serviceUUID: ParcelUuid =
-        ParcelUuid
-            .fromString(
-                UUID.fromString("11111111-2222-3333-4444-555555555555")
-                    .toString()
-            )
+        ParcelUuid(UUID.fromString("04c9e1ed-1ce1-4fde-b3af-60aa092978df"))
 
     override fun onCreate() {
         super.onCreate()

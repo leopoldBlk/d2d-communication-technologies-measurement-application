@@ -12,6 +12,7 @@ import android.net.wifi.aware.WifiAwareManager
 import android.net.wifi.aware.WifiAwareSession
 import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
 import android.os.IBinder
+import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.Services.Location.LocationService
@@ -30,7 +31,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 class WifiAwareSenderService : WifiAwareService() {
     private var isPublishing: AtomicBoolean = AtomicBoolean(false)
 
-    //TODO: Add delay to request?
     private val publishingStateMonitor: Thread = Thread {
         while (true) {
             if (!isPublishing.get()) {
@@ -50,23 +50,23 @@ class WifiAwareSenderService : WifiAwareService() {
     override fun onCreate() {
         super.onCreate()
 
+        deviceUuid = ParcelUuid(UUID.fromString("1369479e-f28b-4e8f-8609-315a10aaaa72"))
+
         if (!applicationContext.packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE)) {
-            LogController.log(Log.ERROR,"Wifi-Aware-Sender", "Device does not support Wi-Fi Aware!")
+            LogController.log(Log.ERROR, "Wifi-Aware-Sender", "No Support for Wi-Fi Aware!")
             stopSelf()
         } else {
-            LogController.log(Log.INFO,"Wifi-Aware-Sender", "Started Service!")
-
             wifiAwareManager =
                 applicationContext.getSystemService(WIFI_AWARE_SERVICE) as WifiAwareManager
 
             // Max Service Specific Info Length: 255 Bytes
-            val maxServiceSpecificInfoLength: Int? =
-                wifiAwareManager.characteristics?.maxServiceSpecificInfoLength
+            //val maxServiceSpecificInfoLength: Int? = wifiAwareManager.characteristics?.maxServiceSpecificInfoLength
 
             wifiAwareManager.attach(object : AttachCallback() {
 
                 override fun onAttached(session: WifiAwareSession?) {
                     super.onAttached(session)
+
                     if (session != null) {
                         wifiAwareSession = session
 
@@ -80,6 +80,8 @@ class WifiAwareSenderService : WifiAwareService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val statusSuperOnStartCommand: Int = super.onStartCommand(intent, flags, startId)
+
         if (intent != null && intent.getStringExtra("TestType") == "Distance Test") {
             applicationContext.startService(Intent(applicationContext, LocationService::class.java))
 
@@ -88,7 +90,7 @@ class WifiAwareSenderService : WifiAwareService() {
             testType = TestType.BATTERY
         }
 
-        return super.onStartCommand(intent, flags, startId)
+        return statusSuperOnStartCommand
     }
 
     override fun onDestroy() {
@@ -102,7 +104,7 @@ class WifiAwareSenderService : WifiAwareService() {
             applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
         }
 
-        LogController.log(Log.DEBUG,"Wifi-Aware-Sender", "Stopped Service!")
+        LogController.log(Log.DEBUG, "Wifi-Aware-Sender", "Stopped Service!")
     }
 
     //TODO: Find another solution, not sure about recursive invocation
@@ -118,7 +120,7 @@ class WifiAwareSenderService : WifiAwareService() {
                 .setServiceSpecificInfo(
                     Json.encodeToString(
                         TransmissionPaket(
-                            UUID.randomUUID().toString(),
+                            deviceUuid.toString(),
                             coordinatesSender = if (testType == TestType.DISTANCE) {
                                 LocationService.currentCoordinates.toString()
                             } else {
@@ -140,11 +142,13 @@ class WifiAwareSenderService : WifiAwareService() {
                 override fun onPublishStarted(session: PublishDiscoverySession) {
                     super.onPublishStarted(session)
 
-                    LogController.log(Log.DEBUG,"Wifi-Aware-Sender", "Publishing Started!")
+                    LogController.log(Log.INFO, "Wifi-Aware-Sender", "Publishing Started!")
                 }
 
                 override fun onSessionTerminated() {
                     super.onSessionTerminated()
+
+                    LogController.log(Log.INFO, "Wifi-Aware-Sender", "Publishing Stopped!")
 
                     isPublishing.set(false)
                 }

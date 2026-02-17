@@ -12,10 +12,10 @@ import android.net.wifi.aware.WifiAwareManager
 import android.net.wifi.aware.WifiAwareSession
 import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
 import android.os.IBinder
+import android.os.ParcelUuid
 import android.util.Log
 import com.leopoldbialek.measurementapp.DataClasses.Measurement
 import com.leopoldbialek.measurementapp.DataClasses.TransmissionPaket
-import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
 import com.leopoldbialek.measurementapp.Enums.TestType
 import com.leopoldbialek.measurementapp.Services.Location.LocationService
@@ -26,12 +26,12 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 class WifiAwareReceiverService : WifiAwareService() {
-    private val receivedTransmissionPackets: MutableList<Measurement> =
+    private lateinit var persistenceController: PersistenceController
+
+    private val measurements: MutableList<Measurement> =
         mutableListOf<Measurement>()
     private val subscribeServiceConfig: SubscribeConfig =
         SubscribeConfig.Builder().setServiceName(serviceUUID.toString()).build()
-
-    private lateinit var persistenceController: PersistenceController
 
     override fun onBind(intent: Intent): IBinder {
         TODO("Return the communication channel to the service.")
@@ -41,16 +41,16 @@ class WifiAwareReceiverService : WifiAwareService() {
     override fun onCreate() {
         super.onCreate()
 
+        deviceUuid = ParcelUuid(UUID.fromString("b059d0aa-f6c8-41a8-893a-b17635f6bc72"))
+
         if (!applicationContext.packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE)) {
             LogController.log(
                 Log.ERROR,
                 "Wifi-Aware-Receiver",
-                "Device does not support Wi-Fi Aware!"
+                "No Support for Wi-Fi Aware!"
             )
             stopSelf()
         } else {
-            LogController.log(Log.INFO, "Wifi-Aware-Receiver", "Started Service!")
-
             wifiAwareManager =
                 applicationContext.getSystemService(WIFI_AWARE_SERVICE) as WifiAwareManager
 
@@ -68,7 +68,7 @@ class WifiAwareReceiverService : WifiAwareService() {
                                     super.onSubscribeStarted(session)
 
                                     LogController.log(
-                                        Log.DEBUG,
+                                        Log.INFO,
                                         "Wifi-Aware-Receiver",
                                         "Started Discovery!"
                                     )
@@ -77,7 +77,7 @@ class WifiAwareReceiverService : WifiAwareService() {
                                 override fun onServiceDiscovered(info: ServiceDiscoveryInfo) {
                                     super.onServiceDiscovered(info)
 
-                                    //TODO: Timestamp calculation accuracy? (Compared to the one with bluetooth)
+                                    //TODO: Timestamp calculation accuracy?
                                     val timestampReceiving: LocalDateTime = LocalDateTime.now()
 
                                     val receivedTransmissionPacket: TransmissionPaket =
@@ -85,14 +85,12 @@ class WifiAwareReceiverService : WifiAwareService() {
                                             info.serviceSpecificInfo?.decodeToString().toString()
                                         )
 
-                                    //TODO: RSSI value cannot be obtained from the ServiceDiscoveryInfo object
                                     val measurement: Measurement = Measurement(
-                                        "Wi-Fi Aware",
                                         receivedTransmissionPacket.uuidSender,
                                         receivedTransmissionPacket.coordinatesSender,
                                         receivedTransmissionPacket.batteryLevelSender,
                                         receivedTransmissionPacket.timestampSending,
-                                        UUID.randomUUID().toString(),
+                                        deviceUuid.toString(),
                                         coordinatesReceiver = if (testType == TestType.DISTANCE) {
                                             LocationService.currentCoordinates.toString()
                                         } else {
@@ -103,12 +101,12 @@ class WifiAwareReceiverService : WifiAwareService() {
                                         timestampReceiving.toString()
                                     )
 
-                                    receivedTransmissionPackets.add(measurement)
+                                    measurements.add(measurement)
 
                                     LogController.log(
                                         Log.INFO,
                                         "Wifi-Aware-Receiver",
-                                        "Received Data: ${measurement}"
+                                        "New Measurement: ${measurement}"
                                     )
                                 }
                             }, null
@@ -120,23 +118,23 @@ class WifiAwareReceiverService : WifiAwareService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val statusSuperOnStartCommand: Int = super.onStartCommand(intent, flags, startId)
+
         persistenceController = PersistenceController(
             Technology.WIFI_AWARE.name,
-            intent!!.getStringExtra("TestType")!!,
-            Role.RECEIVER.name
+            intent!!.getStringExtra("TestType")!!
         )
 
-        return super.onStartCommand(intent, flags, startId)
+        return statusSuperOnStartCommand
     }
 
-    //TODO: Super implementations at the beginning of method or at the end?
     override fun onDestroy() {
+        super.onDestroy()
+
         wifiAwareSession.close()
 
-        persistenceController.persistData(receivedTransmissionPackets.toString())
+        persistenceController.persistData(measurements.toString())
 
         LogController.log(Log.DEBUG, "Wifi-Aware-Receiver", "Stopped Service!")
-
-        super.onDestroy()
     }
 }

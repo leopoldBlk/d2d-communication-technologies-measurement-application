@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Measurement(
-    val technologyForDataTransmission: String,
     val uuidSender: String,
     val coordinatesSender: String,
     val batteryLevelSender: String,
@@ -13,7 +12,6 @@ data class Measurement(
     val coordinatesReceiver: String,
     val batteryLevelReceiver: String,
     val timestampReceiving: String,
-    val rssiValue: String = "",
     val additionalInfo: String = ""
 ) {
 }

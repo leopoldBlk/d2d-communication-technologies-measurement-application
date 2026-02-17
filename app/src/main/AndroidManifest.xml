@@ -49,11 +49,11 @@
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".Services.Communication.BluetoothLe.BluetoothLeReceiver"
+            android:name=".Services.Communication.BluetoothLe.BluetoothLeReceiverService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".Services.Communication.BluetoothLe.BluetoothLeSender"
+            android:name=".Services.Communication.BluetoothLe.BluetoothLeSenderService"
             android:enabled="true"
             android:exported="true" />
         <service

@@ -16,8 +16,8 @@ import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPhy
 import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
 import com.leopoldbialek.measurementapp.Enums.TestType
-import com.leopoldbialek.measurementapp.Services.Communication.BluetoothLe.BluetoothLeReceiver
-import com.leopoldbialek.measurementapp.Services.Communication.BluetoothLe.BluetoothLeSender
+import com.leopoldbialek.measurementapp.Services.Communication.BluetoothLe.BluetoothLeReceiverService
+import com.leopoldbialek.measurementapp.Services.Communication.BluetoothLe.BluetoothLeSenderService
 import com.leopoldbialek.measurementapp.Services.Communication.WiFi.Aware.WifiAwareReceiverService
 import com.leopoldbialek.measurementapp.Services.Communication.WiFi.Aware.WifiAwareSenderService
 import com.leopoldbialek.measurementapp.Services.Location.LocationService
@@ -92,13 +92,13 @@ private fun startServices(
 
     if (selectedTechnology == Technology.BLUETOOTH_LE && selectedRole == Role.SENDER) {
         context.startService(
-            Intent(context, BluetoothLeSender::class.java)
+            Intent(context, BluetoothLeSenderService::class.java)
                 .putExtra("PrimarySenderPhy", selectedBluetoothLeSenderPrimaryPhy.name)
                 .putExtra("SecondarySenderPhy", selectedBluetoothLeConfigSecondaryPhy.name)
         )
     } else if (selectedTechnology == Technology.BLUETOOTH_LE && selectedRole == Role.RECEIVER) {
         context.startService(
-            Intent(context, BluetoothLeReceiver::class.java)
+            Intent(context, BluetoothLeReceiverService::class.java)
                 .putExtra("TestType", selectedTestType.name)
                 .putExtra("ReceiverPhy", selectedBluetoothLeReceiverPhy.name)
         )
@@ -128,11 +128,11 @@ private fun stopServices(
 
     if (selectedTechnology == Technology.BLUETOOTH_LE && selectedRole == Role.SENDER) {
         context.stopService(
-            Intent(context, BluetoothLeSender::class.java)
+            Intent(context, BluetoothLeSenderService::class.java)
         )
     } else if (selectedTechnology == Technology.BLUETOOTH_LE && selectedRole == Role.RECEIVER) {
         context.stopService(
-            Intent(context, BluetoothLeReceiver::class.java)
+            Intent(context, BluetoothLeReceiverService::class.java)
         )
     } else if (selectedTechnology == Technology.WIFI_AWARE && selectedRole == Role.SENDER) {
         context.stopService(
