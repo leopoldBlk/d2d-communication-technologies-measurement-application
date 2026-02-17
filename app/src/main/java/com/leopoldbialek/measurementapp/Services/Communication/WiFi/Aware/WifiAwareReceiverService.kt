@@ -11,7 +11,9 @@ import android.net.wifi.aware.SubscribeDiscoverySession
 import android.net.wifi.aware.WifiAwareManager
 import android.net.wifi.aware.WifiAwareSession
 import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import com.leopoldbialek.measurementapp.DataClasses.Measurement
@@ -32,6 +34,103 @@ class WifiAwareReceiverService : WifiAwareService() {
         mutableListOf<Measurement>()
     private val subscribeServiceConfig: SubscribeConfig =
         SubscribeConfig.Builder().setServiceName(serviceUUID.toString()).build()
+
+    private var callbackHandler: Handler? = null
+    private lateinit var callbackThreadLooper: Looper
+    private lateinit var discoveryThreadLooper: Looper
+
+    private val callbackThread: Thread = Thread {
+        Looper.prepare()
+        val looper: Looper = Looper.myLooper()!!
+
+        callbackThreadLooper = looper
+        callbackHandler = Handler(looper)
+
+        Looper.loop()
+    }
+
+    @SuppressLint("MissingPermission", "NewApi")
+    private val discoveryThread: Thread = Thread {
+        Looper.prepare()
+        val looper: Looper = Looper.myLooper()!!
+        discoveryThreadLooper = looper
+
+        while (callbackHandler == null) {
+            Thread.sleep(10)
+        }
+
+        var sessionAttached: Boolean = false
+
+        wifiAwareManager.attach(object : AttachCallback() {
+
+            override fun onAttached(session: WifiAwareSession?) {
+                super.onAttached(session)
+
+                if (session != null) {
+                    wifiAwareSession = session
+                    sessionAttached = true
+
+                    wifiAwareSession.subscribe(
+                        subscribeServiceConfig, object : DiscoverySessionCallback() {
+                            override fun onSubscribeStarted(session: SubscribeDiscoverySession) {
+                                super.onSubscribeStarted(session)
+
+                                LogController.log(
+                                    Log.INFO,
+                                    "Wifi-Aware-Receiver",
+                                    "Started Discovery!"
+                                )
+                            }
+
+                            override fun onServiceDiscovered(info: ServiceDiscoveryInfo) {
+                                super.onServiceDiscovered(info)
+
+                                //TODO: Timestamp calculation accuracy?
+                                val timestampReceiving: LocalDateTime = LocalDateTime.now()
+
+                                val receivedTransmissionPacket: TransmissionPaket =
+                                    Json.decodeFromString<TransmissionPaket>(
+                                        info.serviceSpecificInfo?.decodeToString().toString()
+                                    )
+
+                                val measurement: Measurement = Measurement(
+                                    receivedTransmissionPacket.uuidSender,
+                                    receivedTransmissionPacket.coordinatesSender,
+                                    receivedTransmissionPacket.batteryLevelSender,
+                                    receivedTransmissionPacket.timestampSending,
+                                    deviceUuid.toString(),
+                                    coordinatesReceiver = if (testType == TestType.DISTANCE) {
+                                        LocationService.currentCoordinates.toString()
+                                    } else {
+                                        ""
+                                    },
+                                    batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY)
+                                        .toString(),
+                                    timestampReceiving.toString()
+                                )
+
+                                measurements.add(measurement)
+
+                                LogController.log(
+                                    Log.INFO,
+                                    "Wifi-Aware-Receiver",
+                                    "New Measurement: ${measurement}"
+                                )
+                            }
+                        }, callbackHandler
+                    )
+                }
+            }
+        }, callbackHandler)
+
+        Looper.loop()
+
+        while (!sessionAttached) {
+            Thread.sleep(10)
+        }
+
+        wifiAwareSession.close()
+    }
 
     override fun onBind(intent: Intent): IBinder {
         TODO("Return the communication channel to the service.")
@@ -54,66 +153,8 @@ class WifiAwareReceiverService : WifiAwareService() {
             wifiAwareManager =
                 applicationContext.getSystemService(WIFI_AWARE_SERVICE) as WifiAwareManager
 
-            wifiAwareManager.attach(object : AttachCallback() {
-
-                override fun onAttached(session: WifiAwareSession?) {
-                    super.onAttached(session)
-
-                    if (session != null) {
-                        wifiAwareSession = session
-
-                        wifiAwareSession.subscribe(
-                            subscribeServiceConfig, object : DiscoverySessionCallback() {
-                                override fun onSubscribeStarted(session: SubscribeDiscoverySession) {
-                                    super.onSubscribeStarted(session)
-
-                                    LogController.log(
-                                        Log.INFO,
-                                        "Wifi-Aware-Receiver",
-                                        "Started Discovery!"
-                                    )
-                                }
-
-                                override fun onServiceDiscovered(info: ServiceDiscoveryInfo) {
-                                    super.onServiceDiscovered(info)
-
-                                    //TODO: Timestamp calculation accuracy?
-                                    val timestampReceiving: LocalDateTime = LocalDateTime.now()
-
-                                    val receivedTransmissionPacket: TransmissionPaket =
-                                        Json.decodeFromString<TransmissionPaket>(
-                                            info.serviceSpecificInfo?.decodeToString().toString()
-                                        )
-
-                                    val measurement: Measurement = Measurement(
-                                        receivedTransmissionPacket.uuidSender,
-                                        receivedTransmissionPacket.coordinatesSender,
-                                        receivedTransmissionPacket.batteryLevelSender,
-                                        receivedTransmissionPacket.timestampSending,
-                                        deviceUuid.toString(),
-                                        coordinatesReceiver = if (testType == TestType.DISTANCE) {
-                                            LocationService.currentCoordinates.toString()
-                                        } else {
-                                            ""
-                                        },
-                                        batteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY)
-                                            .toString(),
-                                        timestampReceiving.toString()
-                                    )
-
-                                    measurements.add(measurement)
-
-                                    LogController.log(
-                                        Log.INFO,
-                                        "Wifi-Aware-Receiver",
-                                        "New Measurement: ${measurement}"
-                                    )
-                                }
-                            }, null
-                        )
-                    }
-                }
-            }, null)
+            callbackThread.start()
+            discoveryThread.start()
         }
     }
 
@@ -131,7 +172,8 @@ class WifiAwareReceiverService : WifiAwareService() {
     override fun onDestroy() {
         super.onDestroy()
 
-        wifiAwareSession.close()
+        discoveryThreadLooper.quit()
+        callbackThreadLooper.quit()
 
         persistenceController.persistData(measurements.toString())
 

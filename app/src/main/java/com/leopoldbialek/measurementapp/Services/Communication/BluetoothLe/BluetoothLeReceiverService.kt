@@ -1,6 +1,7 @@
 package com.leopoldbialek.measurementapp.Services.Communication.BluetoothLe
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -34,10 +35,23 @@ import kotlin.math.roundToLong
 class BluetoothLeReceiverService : BluetoothLeService() {
     private lateinit var persistenceController: PersistenceController
     private lateinit var bleScanner: BluetoothLeScanner
+    private lateinit var scanSettings: ScanSettings
     private lateinit var bleReceiverPhy: BluetoothLeReceiverPhy
 
     private val measurements: MutableList<Measurement> =
         mutableListOf<Measurement>()
+
+    @SuppressLint("MissingPermission")
+    private val scanningThread: Thread = Thread {
+        bleScanner.startScan(null, scanSettings, bleScanCallback)
+        LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Started Scanning!")
+
+        while (!Thread.currentThread().isInterrupted) {
+        }
+
+        bleScanner.stopScan(bleScanCallback)
+        LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Stopped Scanning!")
+    }
 
     private val bleScanCallback: ScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
@@ -106,16 +120,16 @@ class BluetoothLeReceiverService : BluetoothLeService() {
         }
     }
 
-    override fun onBind(intent: Intent): IBinder {
-        TODO("Return the communication channel to the service.")
-    }
-
     override fun onCreate() {
         super.onCreate()
 
         deviceUuid = ParcelUuid(UUID.fromString("fd07f220-6dba-419f-8d12-1035aed4652e"))
 
         bleScanner = blAdapter.bluetoothLeScanner
+    }
+
+    override fun onBind(intent: Intent): IBinder {
+        TODO("Return the communication channel to the service.")
     }
 
     @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
@@ -139,14 +153,13 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                 PHY_LE_ALL_SUPPORTED
             }
 
-        val scanSettings: ScanSettings = ScanSettings.Builder()
+        scanSettings = ScanSettings.Builder()
             .setLegacy(false)
             .setPhy(phy)
             .setScanMode(SCAN_MODE_LOW_LATENCY)
             .build()
 
-        bleScanner.startScan(null, scanSettings, bleScanCallback)
-        LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Started Scanning!")
+        scanningThread.start()
 
         return statusSuperOnStartCommand
     }
@@ -155,10 +168,8 @@ class BluetoothLeReceiverService : BluetoothLeService() {
     override fun onDestroy() {
         super.onDestroy()
 
-        bleScanner.stopScan(bleScanCallback)
+        scanningThread.interrupt()
 
         persistenceController.persistData(measurements.toString())
-
-        LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Stopped Scanning!")
     }
 }

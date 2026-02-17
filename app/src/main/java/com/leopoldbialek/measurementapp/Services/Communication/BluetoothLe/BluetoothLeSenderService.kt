@@ -15,18 +15,17 @@ import android.os.IBinder
 import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresPermission
-import com.leopoldbialek.measurementapp.Services.Location.LocationService
 import com.leopoldbialek.measurementapp.DataClasses.TransmissionPaket
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPhy
-import com.leopoldbialek.measurementapp.Utils.LogController
 import com.leopoldbialek.measurementapp.Enums.TestType
-import java.time.LocalDateTime
-import kotlinx.serialization.*
+import com.leopoldbialek.measurementapp.Services.Location.LocationService
+import com.leopoldbialek.measurementapp.Utils.LogController
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
+import java.time.LocalDateTime
 import java.util.TimeZone
 import java.util.UUID
-import java.util.concurrent.atomic.AtomicBoolean
 
 class BluetoothLeSenderService() : BluetoothLeService() {
     private lateinit var bleAdvertiser: BluetoothLeAdvertiser
@@ -34,12 +33,9 @@ class BluetoothLeSenderService() : BluetoothLeService() {
     private lateinit var currentAdvertisingSet: AdvertisingSet
     private lateinit var advertisingSetParameters: AdvertisingSetParameters
 
-    private val isAdvertising: AtomicBoolean = AtomicBoolean(false)
-
-
     @SuppressLint("MissingPermission")
     private val advertiseDataUpdater: Thread = Thread {
-        while (isAdvertising.get()) {
+        while (!Thread.currentThread().isInterrupted) {
             advertisingData = AdvertiseData
                 .Builder()
                 .addServiceUuid(serviceUUID)
@@ -67,8 +63,24 @@ class BluetoothLeSenderService() : BluetoothLeService() {
 
             currentAdvertisingSet.setAdvertisingData(advertisingData)
 
-            LogController.log(Log.INFO,"Bluetooth-Sender", "Updated Advertising Data!")
+            LogController.log(Log.INFO, "Bluetooth-Sender", "Updated Advertising Data!")
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private val advertisingThread: Thread = Thread {
+        bleAdvertiser.startAdvertisingSet(
+            advertisingSetParameters,
+            advertisingData,
+            null,
+            null,
+            null,
+            advertisingSetCallback
+        )
+        while (!Thread.currentThread().isInterrupted) {
+        }
+
+        bleAdvertiser.stopAdvertisingSet(advertisingSetCallback)
     }
 
     private val advertisingSetCallback: AdvertisingSetCallback = object : AdvertisingSetCallback() {
@@ -83,33 +95,39 @@ class BluetoothLeSenderService() : BluetoothLeService() {
             if (advertisingSet != null) {
                 currentAdvertisingSet = advertisingSet
 
-                isAdvertising.set(true)
-
                 advertiseDataUpdater.start()
             }
 
             if (status == ADVERTISE_SUCCESS) {
-                LogController.log(Log.INFO,"Bluetooth-LE-Sender", "Advertising Started Successfully!")
+                LogController.log(
+                    Log.INFO,
+                    "Bluetooth-LE-Sender",
+                    "Advertising Started Successfully!"
+                )
             } else {
-                LogController.log(Log.ERROR,"Bluetooth-LE-Sender", "Error when Starting Advertising!")
+                LogController.log(
+                    Log.ERROR,
+                    "Bluetooth-LE-Sender",
+                    "Error when Starting Advertising!"
+                )
             }
         }
 
         override fun onAdvertisingSetStopped(advertisingSet: AdvertisingSet?) {
             super.onAdvertisingSetStopped(advertisingSet)
 
-            LogController.log(Log.INFO,"Bluetooth-LE-Sender", "Advertising Stopped!")
+            LogController.log(Log.INFO, "Bluetooth-LE-Sender", "Advertising Stopped!")
         }
-    }
-
-    override fun onBind(intent: Intent): IBinder {
-        TODO("Return the communication channel to the service.")
     }
 
     override fun onCreate() {
         super.onCreate()
 
         deviceUuid = ParcelUuid(UUID.fromString("23814546-50c0-4270-8963-427410ce44fb"))
+    }
+
+    override fun onBind(intent: Intent): IBinder {
+        TODO("Return the communication channel to the service.")
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
@@ -120,8 +138,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
             applicationContext.startService(Intent(applicationContext, LocationService::class.java))
 
             testType = TestType.DISTANCE
-        }
-        else{
+        } else {
             testType = TestType.BATTERY
         }
 
@@ -173,15 +190,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
 
         //Max Advertising Data Length: 1650 Bytes
         //val maxAdvertisingDataLength: Int = blAdapter.leMaximumAdvertisingDataLength
-
-        bleAdvertiser.startAdvertisingSet(
-            advertisingSetParameters,
-            advertisingData,
-            null,
-            null,
-            null,
-            advertisingSetCallback
-        )
+        advertisingThread.start()
 
         return statusSuperOnStartCommand
     }
@@ -190,9 +199,8 @@ class BluetoothLeSenderService() : BluetoothLeService() {
     override fun onDestroy() {
         super.onDestroy()
 
-        isAdvertising.set(false)
-
-        bleAdvertiser.stopAdvertisingSet(advertisingSetCallback)
+        advertiseDataUpdater.interrupt()
+        advertisingThread.interrupt()
 
         if (testType == TestType.DISTANCE) {
             applicationContext.stopService(Intent(applicationContext, LocationService::class.java))

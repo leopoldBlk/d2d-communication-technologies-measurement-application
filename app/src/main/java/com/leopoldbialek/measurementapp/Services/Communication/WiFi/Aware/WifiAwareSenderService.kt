@@ -11,13 +11,14 @@ import android.net.wifi.aware.PublishDiscoverySession
 import android.net.wifi.aware.WifiAwareManager
 import android.net.wifi.aware.WifiAwareSession
 import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.Services.Location.LocationService
 import com.leopoldbialek.measurementapp.DataClasses.TransmissionPaket
-import com.leopoldbialek.measurementapp.MainActivity
 import com.leopoldbialek.measurementapp.Utils.LogController
 import com.leopoldbialek.measurementapp.Enums.TestType
 import kotlinx.serialization.encodeToString
@@ -30,16 +31,56 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class WifiAwareSenderService : WifiAwareService() {
     private var isPublishing: AtomicBoolean = AtomicBoolean(false)
+    private lateinit var publishServiceConfig: PublishConfig
 
-    private val publishingStateMonitor: Thread = Thread {
-        while (true) {
-            if (!isPublishing.get()) {
+    private var callbackHandler: Handler? = null
+    private lateinit var callbackThreadLooper: Looper
+
+    private val callbackThread: Thread = Thread {
+        Looper.prepare()
+        val looper: Looper = Looper.myLooper()!!
+
+        callbackThreadLooper = looper
+        callbackHandler = Handler(looper)
+
+        Looper.loop()
+    }
+
+    private val publishingThread: Thread = Thread {
+        while (callbackHandler == null) {
+            Thread.sleep(10)
+        }
+
+        var sessionAttached: Boolean = false
+
+        // Max Service Specific Info Length: 255 Bytes
+        //val maxServiceSpecificInfoLength: Int? = wifiAwareManager.characteristics?.maxServiceSpecificInfoLength
+
+        wifiAwareManager.attach(object : AttachCallback() {
+
+            override fun onAttached(session: WifiAwareSession?) {
+                super.onAttached(session)
+
+                if (session != null) {
+                    wifiAwareSession = session
+                    sessionAttached = true
+                }
+            }
+        }, callbackHandler)
+
+        while (!Thread.currentThread().isInterrupted) {
+            if (!isPublishing.get() && sessionAttached) {
+                isPublishing.set(true)
                 startPublishing()
             }
         }
-    }
 
-    private lateinit var publishServiceConfig: PublishConfig
+        while (!sessionAttached) {
+            Thread.sleep(10)
+        }
+
+        wifiAwareSession.close()
+    }
 
     override fun onBind(intent: Intent): IBinder {
         TODO("Return the communication channel to the service.")
@@ -58,24 +99,6 @@ class WifiAwareSenderService : WifiAwareService() {
         } else {
             wifiAwareManager =
                 applicationContext.getSystemService(WIFI_AWARE_SERVICE) as WifiAwareManager
-
-            // Max Service Specific Info Length: 255 Bytes
-            //val maxServiceSpecificInfoLength: Int? = wifiAwareManager.characteristics?.maxServiceSpecificInfoLength
-
-            wifiAwareManager.attach(object : AttachCallback() {
-
-                override fun onAttached(session: WifiAwareSession?) {
-                    super.onAttached(session)
-
-                    if (session != null) {
-                        wifiAwareSession = session
-
-                        startPublishing()
-
-                        publishingStateMonitor.start()
-                    }
-                }
-            }, null)
         }
     }
 
@@ -90,6 +113,9 @@ class WifiAwareSenderService : WifiAwareService() {
             testType = TestType.BATTERY
         }
 
+        callbackThread.start()
+        publishingThread.start()
+
         return statusSuperOnStartCommand
     }
 
@@ -98,7 +124,8 @@ class WifiAwareSenderService : WifiAwareService() {
 
         isPublishing.set(false)
 
-        wifiAwareSession.close()
+        publishingThread.interrupt()
+        callbackThreadLooper.quit()
 
         if (testType == TestType.DISTANCE) {
             applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
@@ -107,7 +134,6 @@ class WifiAwareSenderService : WifiAwareService() {
         LogController.log(Log.DEBUG, "Wifi-Aware-Sender", "Stopped Service!")
     }
 
-    //TODO: Find another solution, not sure about recursive invocation
     //TODO: Timestamp accuracy when sending?
     @SuppressLint("MissingPermission")
     fun startPublishing() {
@@ -142,7 +168,11 @@ class WifiAwareSenderService : WifiAwareService() {
                 override fun onPublishStarted(session: PublishDiscoverySession) {
                     super.onPublishStarted(session)
 
-                    LogController.log(Log.INFO, "Wifi-Aware-Sender", "Publishing Started!")
+                    LogController.log(
+                        Log.INFO,
+                        "Wifi-Aware-Sender",
+                        "Publishing Started!"
+                    )
                 }
 
                 override fun onSessionTerminated() {
@@ -153,7 +183,7 @@ class WifiAwareSenderService : WifiAwareService() {
                     isPublishing.set(false)
                 }
             },
-            null
+            callbackHandler
         )
     }
 }
