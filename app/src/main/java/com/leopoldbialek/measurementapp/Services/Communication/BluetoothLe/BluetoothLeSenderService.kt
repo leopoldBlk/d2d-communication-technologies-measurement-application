@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresPermission
+import androidx.core.content.ContextCompat
 import com.leopoldbialek.measurementapp.DataClasses.TransmissionPaket
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPhy
 import com.leopoldbialek.measurementapp.Enums.TestType
@@ -61,7 +62,9 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                 )
                 .build()
 
+            sendBroadcast(Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", true))
             currentAdvertisingSet.setAdvertisingData(advertisingData)
+
 
             LogController.log(Log.INFO, "Bluetooth-Sender", "Updated Advertising Data!")
         }

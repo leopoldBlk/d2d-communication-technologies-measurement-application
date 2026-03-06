@@ -88,6 +88,8 @@ class WifiAwareReceiverService : WifiAwareService() {
                                 //TODO: Timestamp calculation accuracy?
                                 val timestampReceiving: LocalDateTime = LocalDateTime.now()
 
+                                sendBroadcast(Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", true))
+
                                 val receivedTransmissionPacket: TransmissionPaket =
                                     Json.decodeFromString<TransmissionPaket>(
                                         info.serviceSpecificInfo?.decodeToString().toString()

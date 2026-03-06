@@ -1,5 +1,6 @@
 package com.leopoldbialek.measurementapp
 
+import android.content.BroadcastReceiver
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -8,13 +9,21 @@ import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPhy
 import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
 import com.leopoldbialek.measurementapp.Enums.TestType
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class MeasurementViewModel : ViewModel() {
+
     val deviceUuid: UUID = UUID.randomUUID()
 
     var activeMeasurement: MutableState<Boolean> = mutableStateOf(false)
         private set
+
+    var activeDataTransmission: MutableState<Boolean> = mutableStateOf(false)
+        private set
+
+    private lateinit var activeDataTransmissionLastSet: LocalDateTime
 
     var selectedTechnology: MutableState<Technology> = mutableStateOf(Technology.BLUETOOTH_LE)
         private set
@@ -42,6 +51,14 @@ class MeasurementViewModel : ViewModel() {
         }
     }
 
+    fun changeActiveDataTransmission(isActiveDataTransmission: Boolean){
+        activeDataTransmission.value = isActiveDataTransmission
+        activeDataTransmissionLastSet = LocalDateTime.now()
+        if(!checkActiveDataTransmissionThread.isAlive){
+            checkActiveDataTransmissionThread.start()
+        }
+    }
+
     fun changeSelectedTechnology(technology: Technology) {
         selectedTechnology.value = technology
     }
@@ -64,5 +81,17 @@ class MeasurementViewModel : ViewModel() {
 
     fun changeSelectedTestType(testType: TestType){
         selectedTestType.value = testType
+    }
+
+    val checkActiveDataTransmissionThread: Thread = Thread {
+        val waitDurationForCheckMillis: Long = 5000
+
+        while (!Thread.currentThread().isInterrupted){
+            Thread.sleep(waitDurationForCheckMillis)
+
+            if (waitDurationForCheckMillis < ChronoUnit.MILLIS.between(activeDataTransmissionLastSet, LocalDateTime.now())){
+                activeDataTransmission.value = false
+            }
+        }
     }
 }

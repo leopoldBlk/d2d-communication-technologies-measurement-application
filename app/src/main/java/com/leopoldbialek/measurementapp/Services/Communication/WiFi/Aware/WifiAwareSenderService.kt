@@ -168,6 +168,8 @@ class WifiAwareSenderService : WifiAwareService() {
                 override fun onPublishStarted(session: PublishDiscoverySession) {
                     super.onPublishStarted(session)
 
+                    sendBroadcast(Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", true))
+
                     LogController.log(
                         Log.INFO,
                         "Wifi-Aware-Sender",

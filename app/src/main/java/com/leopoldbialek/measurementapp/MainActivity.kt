@@ -1,5 +1,9 @@
 package com.leopoldbialek.measurementapp
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.leopoldbialek.measurementapp.ui.components.ControlButtons
 import com.leopoldbialek.measurementapp.ui.components.RoleSelection
 import com.leopoldbialek.measurementapp.ui.components.SendingReceivingIndicator
@@ -23,6 +28,8 @@ class MainActivity : ComponentActivity() {
     private val measurementViewModel: MeasurementViewModel by viewModels<MeasurementViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
         requestPermissions(
             arrayOf(
                 android.Manifest.permission.BLUETOOTH_SCAN,
@@ -40,7 +47,6 @@ class MainActivity : ComponentActivity() {
             ), 1
         )
 
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             MeasurementAppTheme {
@@ -90,7 +96,7 @@ class MainActivity : ComponentActivity() {
 
                     SendingReceivingIndicator(
                         measurementViewModel.selectedRole.value,
-                        false,
+                        measurementViewModel.activeDataTransmission.value,
                         measurementViewModel.activeMeasurement.value
                     )
                 }
@@ -100,6 +106,22 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        registerReceiver(
+            object : BroadcastReceiver() {
+                override fun onReceive(
+                    context: Context?,
+                    intent: Intent?
+                ) {
+                    measurementViewModel.changeActiveDataTransmission(
+                        intent!!.getBooleanExtra(
+                            "activeDataTransmission",
+                            false
+                        )
+                    )
+                }
+            }, IntentFilter("MEASUREMENT_BROADCAST"), RECEIVER_EXPORTED
+        )
+
 
         //applicationContext.startService(Intent(applicationContext, WifiDirectSenderService::class.java))
 

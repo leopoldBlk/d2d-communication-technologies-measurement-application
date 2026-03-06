@@ -64,6 +64,8 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                             -6
                         )).roundToLong()
 
+                    sendBroadcast(Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", true))
+
                     val receivedTransmissionPacket: TransmissionPaket =
                         Json.decodeFromString<TransmissionPaket>(
                             result.scanRecord?.serviceData?.get(serviceUUID)?.decodeToString()
