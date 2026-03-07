@@ -228,6 +228,10 @@ class WifiAwareReceiverService : WifiAwareService() {
 
         persistenceController.persistData(measurements.toString())
 
+        sendBroadcast(
+            Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", false)
+        )
+
         LogController.log(Log.DEBUG, "Wifi-Aware-Receiver", "Stopped Service!")
     }
 }

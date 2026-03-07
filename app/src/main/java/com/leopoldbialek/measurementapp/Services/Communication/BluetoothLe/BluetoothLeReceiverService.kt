@@ -207,5 +207,9 @@ class BluetoothLeReceiverService : BluetoothLeService() {
         }
 
         persistenceController.persistData(measurements.toString())
+
+        sendBroadcast(
+            Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", false)
+        )
     }
 }

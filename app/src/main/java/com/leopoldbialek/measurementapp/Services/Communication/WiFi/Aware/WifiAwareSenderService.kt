@@ -242,6 +242,10 @@ class WifiAwareSenderService : WifiAwareService() {
             persistenceController.persistData(measurements.toString())
         }
 
+        sendBroadcast(
+            Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", false)
+        )
+
         LogController.log(Log.DEBUG, "Wifi-Aware-Sender", "Stopped Service!")
     }
 }

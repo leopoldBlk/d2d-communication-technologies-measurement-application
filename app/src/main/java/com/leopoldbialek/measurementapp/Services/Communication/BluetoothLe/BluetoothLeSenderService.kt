@@ -286,5 +286,9 @@ class BluetoothLeSenderService() : BluetoothLeService() {
             unregisterReceiver(batteryChangeBroadcastReceiver)
             persistenceController.persistData(measurements.toString())
         }
+
+        sendBroadcast(
+            Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", false)
+        )
     }
 }
