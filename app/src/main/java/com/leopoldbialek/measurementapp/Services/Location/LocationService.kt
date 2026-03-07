@@ -4,19 +4,19 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Intent
-import android.location.LocationListener
-import android.location.LocationManager
-import android.location.LocationRequest
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.leopoldbialek.measurementapp.DataClasses.Coordinates
 import com.leopoldbialek.measurementapp.Utils.LogController
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.asExecutor
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationListener
+import com.google.android.gms.location.Priority
 import java.util.concurrent.Executors
 
 class LocationService : Service() {
@@ -34,27 +34,16 @@ class LocationService : Service() {
 
         locationUpdaterThreadLooper = looper
 
-        locationManager.getCurrentLocation(
-            LocationManager.GPS_PROVIDER,
-            null,
-            Executors.newSingleThreadExecutor()
-        )
-        { location ->
-            if (location != null) {
-                currentCoordinates = Coordinates(location.longitude, location.latitude)
-            }
-        }
-
-        locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            LocationRequest.Builder(100).build(),
-            Executors.newSingleThreadExecutor(), locationListener
+        fusedLocationProviderClient.requestLocationUpdates(
+            LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000).build(),
+            Executors.newSingleThreadExecutor(),
+            locationListener
         )
 
         Looper.loop()
     }
 
-    private lateinit var locationManager: LocationManager
+    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
     val locationListener: LocationListener = LocationListener { location ->
         currentCoordinates = Coordinates(location.longitude, location.latitude)
@@ -75,7 +64,7 @@ class LocationService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        locationManager = applicationContext.getSystemService(LOCATION_SERVICE) as LocationManager
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(applicationContext)
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
@@ -93,6 +82,6 @@ class LocationService : Service() {
 
         locationUpdaterThreadLooper.quit()
 
-        locationManager.removeUpdates(locationListener)
+        fusedLocationProviderClient.removeLocationUpdates(locationListener)
     }
 }
