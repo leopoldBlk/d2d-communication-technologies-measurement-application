@@ -7,7 +7,8 @@ import java.time.LocalDateTime
 
 class PersistenceController(
     private val technology: String,
-    private val testType: String
+    private val testType: String,
+    private val role: String
 ) {
     private lateinit var fileWriter: FileWriter
     private lateinit var measurementFile: File
@@ -22,7 +23,7 @@ class PersistenceController(
         }
 
         measurementFile = File(
-            measurementFilesDir + technology + "_" + testType + "_" + LocalDateTime.now()
+            measurementFilesDir + technology + "_" + testType + "_" + role + "_" + LocalDateTime.now()
                 .toString()
                 .replace("T", "_")
                 .replace(":", "-") + ".txt"

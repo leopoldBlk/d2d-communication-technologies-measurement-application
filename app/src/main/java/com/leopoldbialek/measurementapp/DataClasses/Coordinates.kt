@@ -1,3 +1,3 @@
 package com.leopoldbialek.measurementapp.DataClasses
 
-data class Coordinates(val longitude: Double, val latitude: Double){}
+data class Coordinates(val latitude: Double, val longitude: Double){}

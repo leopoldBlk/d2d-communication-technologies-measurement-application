@@ -6,15 +6,18 @@ import android.net.wifi.aware.WifiAwareSession
 import android.os.BatteryManager
 import android.os.ParcelUuid
 import com.leopoldbialek.measurementapp.Enums.TestType
+import com.leopoldbialek.measurementapp.Utils.PersistenceController
 import java.util.UUID
 
 abstract class WifiAwareService : Service() {
-    protected lateinit var deviceUuid: ParcelUuid
     protected lateinit var wifiAwareManager: WifiAwareManager
     protected lateinit var wifiAwareSession: WifiAwareSession
     protected lateinit var batteryManager: BatteryManager
     protected lateinit var testType: TestType
+    protected lateinit var persistenceController: PersistenceController
 
+    protected val measurements: MutableList<Any> =
+        mutableListOf<Any>()
     protected val serviceUUID: ParcelUuid =
         ParcelUuid(UUID.fromString("04c9e1ed-1ce1-4fde-b3af-60aa092978df"))
 

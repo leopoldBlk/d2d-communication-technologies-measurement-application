@@ -84,7 +84,7 @@ private fun startServices(
     selectedBluetoothLeConfigSecondaryPhy: BluetoothLeSenderPhy,
     selectedBluetoothLeReceiverPhy: BluetoothLeReceiverPhy
 ) {
-    if (selectedTestType == TestType.DISTANCE) {
+    if (selectedTestType == TestType.RANGE) {
         context.startService(
             Intent(context, LocationService::class.java)
         )
@@ -93,6 +93,7 @@ private fun startServices(
     if (selectedTechnology == Technology.BLUETOOTH_LE && selectedRole == Role.SENDER) {
         context.startService(
             Intent(context, BluetoothLeSenderService::class.java)
+                .putExtra("TestType", selectedTestType.name)
                 .putExtra("PrimarySenderPhy", selectedBluetoothLeSenderPrimaryPhy.name)
                 .putExtra("SecondarySenderPhy", selectedBluetoothLeConfigSecondaryPhy.name)
         )
@@ -105,6 +106,7 @@ private fun startServices(
     } else if (selectedTechnology == Technology.WIFI_AWARE && selectedRole == Role.SENDER) {
         context.startService(
             Intent(context, WifiAwareSenderService::class.java)
+                .putExtra("TestType", selectedTestType.name)
         )
     } else if (selectedTechnology == Technology.WIFI_AWARE && selectedRole == Role.RECEIVER) {
         context.startService(
@@ -120,7 +122,7 @@ private fun stopServices(
     selectedRole: Role,
     selectedTestType: TestType
 ) {
-    if (selectedTestType == TestType.DISTANCE) {
+    if (selectedTestType == TestType.RANGE) {
         context.stopService(
             Intent(context, LocationService::class.java)
         )

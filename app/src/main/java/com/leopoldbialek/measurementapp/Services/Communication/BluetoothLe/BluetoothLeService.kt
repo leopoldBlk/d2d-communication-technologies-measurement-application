@@ -8,15 +8,18 @@ import android.os.ParcelUuid
 import android.util.Log
 import com.leopoldbialek.measurementapp.Enums.TestType
 import com.leopoldbialek.measurementapp.Utils.LogController
+import com.leopoldbialek.measurementapp.Utils.PersistenceController
 import java.util.UUID
 
 abstract class BluetoothLeService() : Service() {
-    protected lateinit var deviceUuid: ParcelUuid
     protected lateinit var blManager: BluetoothManager
     protected lateinit var blAdapter: BluetoothAdapter
     protected lateinit var batteryManager: BatteryManager
     protected lateinit var testType: TestType
+    protected lateinit var persistenceController: PersistenceController
 
+    protected val measurements: MutableList<Any> =
+        mutableListOf<Any>()
     private val checkSupportedBleFeatures: Boolean = false
     protected val serviceUUID: ParcelUuid =
         ParcelUuid(UUID.fromString("361f2683-ebbe-423c-bf78-e3e5efbf86f1"))

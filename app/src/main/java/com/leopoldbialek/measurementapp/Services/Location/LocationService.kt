@@ -46,7 +46,7 @@ class LocationService : Service() {
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
     val locationListener: LocationListener = LocationListener { location ->
-        currentCoordinates = Coordinates(location.longitude, location.latitude)
+        currentCoordinates = Coordinates(location.latitude, location.longitude)
 
         LogController.log(
             Log.DEBUG,

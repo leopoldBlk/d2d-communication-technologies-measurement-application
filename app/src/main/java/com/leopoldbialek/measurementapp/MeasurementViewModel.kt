@@ -1,6 +1,5 @@
 package com.leopoldbialek.measurementapp
 
-import android.content.BroadcastReceiver
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -40,7 +39,7 @@ class MeasurementViewModel : ViewModel() {
     var selectedRole: MutableState<Role> = mutableStateOf(Role.SENDER)
         private set
 
-    var selectedTestType: MutableState<TestType> = mutableStateOf(TestType.DISTANCE)
+    var selectedTestType: MutableState<TestType> = mutableStateOf(TestType.RANGE)
         private set
 
     fun changeMeasurementState() {
