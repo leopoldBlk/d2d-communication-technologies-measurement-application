@@ -10,7 +10,6 @@ import android.net.wifi.aware.SubscribeConfig
 import android.net.wifi.aware.SubscribeDiscoverySession
 import android.net.wifi.aware.WifiAwareManager
 import android.net.wifi.aware.WifiAwareSession
-import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -18,7 +17,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.IntentFilter
 import android.os.BatteryManager
-import android.os.ParcelUuid
 import android.util.Log
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
 import com.leopoldbialek.measurementapp.DataClasses.RangeTest.MeasurementRangeTest
@@ -32,17 +30,14 @@ import com.leopoldbialek.measurementapp.Utils.PersistenceController
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.time.ZoneOffset
-import java.util.UUID
 
 class WifiAwareReceiverService : WifiAwareService() {
-    private val measurementRangeTests: MutableList<MeasurementRangeTest> =
-        mutableListOf<MeasurementRangeTest>()
-    private val subscribeServiceConfig: SubscribeConfig =
-        SubscribeConfig.Builder().setServiceName(serviceUUID.toString()).build()
-
-    private var callbackHandler: Handler? = null
     private lateinit var callbackThreadLooper: Looper
     private lateinit var discoveryThreadLooper: Looper
+
+    private var callbackHandler: Handler? = null
+    private val subscribeServiceConfig: SubscribeConfig =
+        SubscribeConfig.Builder().setServiceName(serviceUUID.toString()).build()
 
     private val callbackThread: Thread = Thread {
         Looper.prepare()
@@ -58,6 +53,7 @@ class WifiAwareReceiverService : WifiAwareService() {
     private val discoveryThread: Thread = Thread {
         Looper.prepare()
         val looper: Looper = Looper.myLooper()!!
+
         discoveryThreadLooper = looper
 
         while (callbackHandler == null) {
@@ -90,41 +86,43 @@ class WifiAwareReceiverService : WifiAwareService() {
                             override fun onServiceDiscovered(info: ServiceDiscoveryInfo) {
                                 super.onServiceDiscovered(info)
 
-                                if (trustedTimeClient != null) {//TODO: Timestamp calculation accuracy?
-                                    val timestampReceiving: LocalDateTime = LocalDateTime.ofInstant(
+                                val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                                    LocalDateTime.now()
+                                } else {
+                                    LocalDateTime.ofInstant(
                                         trustedTimeClient!!.computeCurrentInstant(),
                                         ZoneOffset.systemDefault()
+                                    )
+                                }
+
+                                if (testType == TestType.RANGE) {
+                                    val receivedTransmissionPacket: TransmissionPaketRangeTest =
+                                        Json.decodeFromString<TransmissionPaketRangeTest>(
+                                            info.serviceSpecificInfo?.decodeToString()
+                                                .toString()
+                                        )
+
+                                    val measurementRangeTest: MeasurementRangeTest =
+                                        MeasurementRangeTest(
+                                            receivedTransmissionPacket.coordinatesSender,
+                                            receivedTransmissionPacket.timestampSending,
+                                            receivedTransmissionPacket.additionalInfoSender,
+                                            LocationService.currentCoordinates.toString(),
+                                            timestamp.toString()
+                                        )
+
+                                    measurements.add(measurementRangeTest)
+
+                                    LogController.log(
+                                        Log.INFO,
+                                        "Wifi-Aware-Receiver",
+                                        "New Measurement: ${measurementRangeTest}"
                                     )
 
                                     sendBroadcast(
                                         Intent().setAction("MEASUREMENT_BROADCAST")
                                             .putExtra("activeDataTransmission", true)
                                     )
-
-                                    if (testType == TestType.RANGE) {
-                                        val receivedTransmissionPacket: TransmissionPaketRangeTest =
-                                            Json.decodeFromString<TransmissionPaketRangeTest>(
-                                                info.serviceSpecificInfo?.decodeToString()
-                                                    .toString()
-                                            )
-
-                                        val measurementRangeTest: MeasurementRangeTest =
-                                            MeasurementRangeTest(
-                                                receivedTransmissionPacket.coordinatesSender,
-                                                receivedTransmissionPacket.timestampSending,
-                                                receivedTransmissionPacket.additionalInfoSender,
-                                                LocationService.currentCoordinates.toString(),
-                                                timestampReceiving.toString()
-                                            )
-
-                                        measurementRangeTests.add(measurementRangeTest)
-
-                                        LogController.log(
-                                            Log.INFO,
-                                            "Wifi-Aware-Receiver",
-                                            "New Measurement: ${measurementRangeTest}"
-                                        )
-                                    }
                                 }
                             }
                         }, callbackHandler
@@ -140,10 +138,6 @@ class WifiAwareReceiverService : WifiAwareService() {
         }
 
         wifiAwareSession.close()
-    }
-
-    override fun onBind(intent: Intent): IBinder {
-        TODO("Return the communication channel to the service.")
     }
 
     @SuppressLint("MissingPermission", "NewApi")
@@ -166,13 +160,17 @@ class WifiAwareReceiverService : WifiAwareService() {
         }
     }
 
+    override fun onBind(intent: Intent): IBinder {
+        TODO("Return the communication channel to the service.")
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val statusSuperOnStartCommand: Int = super.onStartCommand(intent, flags, startId)
 
         persistenceController = PersistenceController(
             Technology.WIFI_AWARE.name,
             intent!!.getStringExtra("TestType")!!,
-            Role.RECEIVER.toString()
+            Role.RECEIVER.name
         )
 
         if (intent != null && intent.getStringExtra("TestType") == TestType.RANGE.name) {
@@ -182,30 +180,34 @@ class WifiAwareReceiverService : WifiAwareService() {
         } else {
             testType = TestType.BATTERY
 
-            registerReceiver(
-                object : BroadcastReceiver() {
-                    override fun onReceive(
-                        context: Context?,
-                        intent: Intent?
-                    ) {
-                        val timestamp: LocalDateTime = if (trustedTimeClient == null) {
-                            LocalDateTime.now()
-                        } else {
-                            LocalDateTime.ofInstant(
-                                trustedTimeClient!!.computeCurrentInstant(),
-                                ZoneOffset.systemDefault()
-                            )
-                        }
-
-                        val measurementBatteryTest: MeasurementBatteryTest = MeasurementBatteryTest(
-                            intent!!.getIntExtra(BatteryManager.EXTRA_LEVEL, 101).toString(),
-                            timestamp.toString(),
-                            ""
+            batteryChangeBroadcastReceiver = object : BroadcastReceiver() {
+                override fun onReceive(
+                    context: Context?,
+                    intent: Intent?
+                ) {
+                    val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                        LocalDateTime.now()
+                    } else {
+                        LocalDateTime.ofInstant(
+                            trustedTimeClient!!.computeCurrentInstant(),
+                            ZoneOffset.systemDefault()
                         )
-
-                        measurements.add(measurementBatteryTest)
                     }
-                }, IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_EXPORTED
+
+                    val measurementBatteryTest: MeasurementBatteryTest = MeasurementBatteryTest(
+                        intent!!.getIntExtra(BatteryManager.EXTRA_LEVEL, 101).toString(),
+                        timestamp.toString(),
+                        ""
+                    )
+
+                    measurements.add(measurementBatteryTest)
+                }
+            }
+
+            registerReceiver(
+                batteryChangeBroadcastReceiver,
+                IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+                RECEIVER_EXPORTED
             )
         }
 
@@ -220,9 +222,11 @@ class WifiAwareReceiverService : WifiAwareService() {
 
         if (testType == TestType.RANGE) {
             applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
+        } else {
+            unregisterReceiver(batteryChangeBroadcastReceiver)
         }
 
-        persistenceController.persistData(measurementRangeTests.toString())
+        persistenceController.persistData(measurements.toString())
 
         LogController.log(Log.DEBUG, "Wifi-Aware-Receiver", "Stopped Service!")
     }

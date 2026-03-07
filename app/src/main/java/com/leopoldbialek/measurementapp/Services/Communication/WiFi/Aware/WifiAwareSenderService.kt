@@ -40,11 +40,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 
 class WifiAwareSenderService : WifiAwareService() {
-    private var isPublishing: AtomicBoolean = AtomicBoolean(false)
     private lateinit var publishServiceConfig: PublishConfig
-
-    private var callbackHandler: Handler? = null
     private lateinit var callbackThreadLooper: Looper
+
+    private var isPublishing: AtomicBoolean = AtomicBoolean(false)
+    private var callbackHandler: Handler? = null
 
     private val callbackThread: Thread = Thread {
         Looper.prepare()
@@ -92,95 +92,8 @@ class WifiAwareSenderService : WifiAwareService() {
         wifiAwareSession.close()
     }
 
-    override fun onBind(intent: Intent): IBinder {
-        TODO("Return the communication channel to the service.")
-    }
-
-    @SuppressLint("MissingPermission")
-    @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.NEARBY_WIFI_DEVICES])
-    override fun onCreate() {
-        super.onCreate()
-
-        if (!applicationContext.packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE)) {
-            LogController.log(Log.ERROR, "Wifi-Aware-Sender", "No Support for Wi-Fi Aware!")
-            stopSelf()
-        } else {
-            wifiAwareManager =
-                applicationContext.getSystemService(WIFI_AWARE_SERVICE) as WifiAwareManager
-        }
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val statusSuperOnStartCommand: Int = super.onStartCommand(intent, flags, startId)
-
-        persistenceController = PersistenceController(
-            Technology.BLUETOOTH_LE.name,
-            intent!!.getStringExtra("TestType")!!,
-            Role.SENDER.toString()
-        )
-
-        if (intent != null && intent.getStringExtra("TestType") == TestType.RANGE.name) {
-            applicationContext.startService(Intent(applicationContext, LocationService::class.java))
-
-            testType = TestType.RANGE
-        } else {
-            testType = TestType.BATTERY
-
-            registerReceiver(
-                object : BroadcastReceiver() {
-                    override fun onReceive(
-                        context: Context?,
-                        intent: Intent?
-                    ) {
-                        val timestamp: LocalDateTime = if (trustedTimeClient == null) {
-                            LocalDateTime.now()
-                        } else {
-                            LocalDateTime.ofInstant(
-                                trustedTimeClient!!.computeCurrentInstant(),
-                                ZoneOffset.systemDefault()
-                            )
-                        }
-
-                        val measurementBatteryTest: MeasurementBatteryTest = MeasurementBatteryTest(
-                            intent!!.getIntExtra(BatteryManager.EXTRA_LEVEL, 101).toString(),
-                            timestamp.toString(),
-                            ""
-                        )
-
-                        measurements.add(measurementBatteryTest)
-                    }
-                }, IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_EXPORTED
-            )
-        }
-
-        callbackThread.start()
-        publishingThread.start()
-
-        return statusSuperOnStartCommand
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-
-        isPublishing.set(false)
-
-        publishingThread.interrupt()
-        callbackThreadLooper.quit()
-
-        if (testType == TestType.RANGE) {
-            applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
-        } else {
-            persistenceController.persistData(measurements.toString())
-        }
-
-        LogController.log(Log.DEBUG, "Wifi-Aware-Sender", "Stopped Service!")
-    }
-
-    //TODO: Timestamp accuracy when sending?
     @SuppressLint("MissingPermission")
     fun startPublishing() {
-        isPublishing.set(true)
-
         if (testType == TestType.RANGE) {
             val timestamp: LocalDateTime = if (trustedTimeClient == null) {
                 LocalDateTime.now()
@@ -210,7 +123,7 @@ class WifiAwareSenderService : WifiAwareService() {
                     .setServiceName(serviceUUID.toString())
                     .setTtlSec(1)
                     .setServiceSpecificInfo(
-                        Random.nextBytes(254)
+                        Random.nextBytes(237)
                     ).build()
         }
 
@@ -242,5 +155,93 @@ class WifiAwareSenderService : WifiAwareService() {
             },
             callbackHandler
         )
+    }
+
+    @SuppressLint("MissingPermission")
+    @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.NEARBY_WIFI_DEVICES])
+    override fun onCreate() {
+        super.onCreate()
+
+        if (!applicationContext.packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE)) {
+            LogController.log(Log.ERROR, "Wifi-Aware-Sender", "No Support for Wifi Aware!")
+            stopSelf()
+        } else {
+            wifiAwareManager =
+                applicationContext.getSystemService(WIFI_AWARE_SERVICE) as WifiAwareManager
+        }
+    }
+
+    override fun onBind(intent: Intent): IBinder {
+        TODO("Return the communication channel to the service.")
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val statusSuperOnStartCommand: Int = super.onStartCommand(intent, flags, startId)
+
+        persistenceController = PersistenceController(
+            Technology.BLUETOOTH_LE.name,
+            intent!!.getStringExtra("TestType")!!,
+            Role.SENDER.name
+        )
+
+        if (intent != null && intent.getStringExtra("TestType") == TestType.RANGE.name) {
+            applicationContext.startService(Intent(applicationContext, LocationService::class.java))
+
+            testType = TestType.RANGE
+        } else {
+            testType = TestType.BATTERY
+
+            batteryChangeBroadcastReceiver = object : BroadcastReceiver() {
+                override fun onReceive(
+                    context: Context?,
+                    intent: Intent?
+                ) {
+                    val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                        LocalDateTime.now()
+                    } else {
+                        LocalDateTime.ofInstant(
+                            trustedTimeClient!!.computeCurrentInstant(),
+                            ZoneOffset.systemDefault()
+                        )
+                    }
+
+                    val measurementBatteryTest: MeasurementBatteryTest = MeasurementBatteryTest(
+                        intent!!.getIntExtra(BatteryManager.EXTRA_LEVEL, 101).toString(),
+                        timestamp.toString(),
+                        ""
+                    )
+
+                    measurements.add(measurementBatteryTest)
+                }
+            }
+
+            registerReceiver(
+                batteryChangeBroadcastReceiver,
+                IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+                RECEIVER_EXPORTED
+            )
+        }
+
+        callbackThread.start()
+        publishingThread.start()
+
+        return statusSuperOnStartCommand
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        isPublishing.set(false)
+        publishingThread.interrupt()
+        callbackThreadLooper.quit()
+
+        if (testType == TestType.RANGE) {
+            applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
+        } else {
+            unregisterReceiver(batteryChangeBroadcastReceiver)
+            persistenceController.persistData(measurements.toString())
+        }
+
+        LogController.log(Log.DEBUG, "Wifi-Aware-Sender", "Stopped Service!")
     }
 }
