@@ -3,9 +3,12 @@ package com.leopoldbialek.measurementapp.Services.Communication.BluetoothLe
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
 import android.os.BatteryManager
 import android.os.ParcelUuid
 import android.util.Log
+import com.google.android.gms.time.TrustedTime
+import com.google.android.gms.time.TrustedTimeClient
 import com.leopoldbialek.measurementapp.Enums.TestType
 import com.leopoldbialek.measurementapp.Utils.LogController
 import com.leopoldbialek.measurementapp.Utils.PersistenceController
@@ -17,6 +20,8 @@ abstract class BluetoothLeService() : Service() {
     protected lateinit var batteryManager: BatteryManager
     protected lateinit var testType: TestType
     protected lateinit var persistenceController: PersistenceController
+    protected var trustedTimeClient: TrustedTimeClient? = null
+    protected lateinit var batteryChangeBroadcastReceiver: BroadcastReceiver
 
     protected val measurements: MutableList<Any> =
         mutableListOf<Any>()
@@ -26,6 +31,11 @@ abstract class BluetoothLeService() : Service() {
 
     override fun onCreate() {
         super.onCreate()
+
+        TrustedTime.createClient(applicationContext).addOnSuccessListener { trustedTimeClient ->
+            this.trustedTimeClient = trustedTimeClient
+        }
+
 
         blManager = applicationContext.getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
         blAdapter = blManager.adapter

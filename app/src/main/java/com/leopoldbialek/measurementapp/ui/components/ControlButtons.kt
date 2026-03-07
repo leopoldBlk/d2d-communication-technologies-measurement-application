@@ -84,12 +84,6 @@ private fun startServices(
     selectedBluetoothLeConfigSecondaryPhy: BluetoothLeSenderPhy,
     selectedBluetoothLeReceiverPhy: BluetoothLeReceiverPhy
 ) {
-    if (selectedTestType == TestType.RANGE) {
-        context.startService(
-            Intent(context, LocationService::class.java)
-        )
-    }
-
     if (selectedTechnology == Technology.BLUETOOTH_LE && selectedRole == Role.SENDER) {
         context.startService(
             Intent(context, BluetoothLeSenderService::class.java)
@@ -122,12 +116,6 @@ private fun stopServices(
     selectedRole: Role,
     selectedTestType: TestType
 ) {
-    if (selectedTestType == TestType.RANGE) {
-        context.stopService(
-            Intent(context, LocationService::class.java)
-        )
-    }
-
     if (selectedTechnology == Technology.BLUETOOTH_LE && selectedRole == Role.SENDER) {
         context.stopService(
             Intent(context, BluetoothLeSenderService::class.java)

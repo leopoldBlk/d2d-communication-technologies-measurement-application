@@ -34,6 +34,7 @@ import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.util.TimeZone
 import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
@@ -118,7 +119,7 @@ class WifiAwareSenderService : WifiAwareService() {
             Role.SENDER.toString()
         )
 
-        if (intent != null && intent.getStringExtra("TestType") == "Distance Test") {
+        if (intent != null && intent.getStringExtra("TestType") == TestType.RANGE.name) {
             applicationContext.startService(Intent(applicationContext, LocationService::class.java))
 
             testType = TestType.RANGE
@@ -131,15 +132,25 @@ class WifiAwareSenderService : WifiAwareService() {
                         context: Context?,
                         intent: Intent?
                     ) {
+                        val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                            LocalDateTime.now()
+                        } else {
+                            LocalDateTime.ofInstant(
+                                trustedTimeClient!!.computeCurrentInstant(),
+                                ZoneOffset.systemDefault()
+                            )
+                        }
+
                         val measurementBatteryTest: MeasurementBatteryTest = MeasurementBatteryTest(
                             intent!!.getIntExtra(BatteryManager.EXTRA_LEVEL, 101).toString(),
-                            LocalDateTime.now().toString(),
+                            timestamp.toString(),
                             ""
                         )
 
                         measurements.add(measurementBatteryTest)
                     }
-                }, IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_EXPORTED)
+                }, IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_EXPORTED
+            )
         }
 
         callbackThread.start()
@@ -158,8 +169,7 @@ class WifiAwareSenderService : WifiAwareService() {
 
         if (testType == TestType.RANGE) {
             applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
-        }
-        else{
+        } else {
             persistenceController.persistData(measurements.toString())
         }
 
@@ -172,6 +182,15 @@ class WifiAwareSenderService : WifiAwareService() {
         isPublishing.set(true)
 
         if (testType == TestType.RANGE) {
+            val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                LocalDateTime.now()
+            } else {
+                LocalDateTime.ofInstant(
+                    trustedTimeClient!!.computeCurrentInstant(),
+                    ZoneOffset.systemDefault()
+                )
+            }
+
             publishServiceConfig =
                 PublishConfig.Builder()
                     .setServiceName(serviceUUID.toString())
@@ -180,17 +199,18 @@ class WifiAwareSenderService : WifiAwareService() {
                         Json.encodeToString(
                             TransmissionPaketRangeTest(
                                 LocationService.currentCoordinates.toString(),
-                                LocalDateTime.now().toString()
+                                timestamp.toString()
                             )
                         ).encodeToByteArray()
                     ).build()
+
         } else {
             publishServiceConfig =
                 PublishConfig.Builder()
                     .setServiceName(serviceUUID.toString())
                     .setTtlSec(1)
                     .setServiceSpecificInfo(
-                        Random.nextBytes(255)
+                        Random.nextBytes(254)
                     ).build()
         }
 

@@ -31,6 +31,7 @@ import com.leopoldbialek.measurementapp.Utils.LogController
 import com.leopoldbialek.measurementapp.Utils.PersistenceController
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 
 class WifiAwareReceiverService : WifiAwareService() {
@@ -89,36 +90,41 @@ class WifiAwareReceiverService : WifiAwareService() {
                             override fun onServiceDiscovered(info: ServiceDiscoveryInfo) {
                                 super.onServiceDiscovered(info)
 
-                                //TODO: Timestamp calculation accuracy?
-                                val timestampReceiving: LocalDateTime = LocalDateTime.now()
-
-                                sendBroadcast(
-                                    Intent().setAction("MEASUREMENT_BROADCAST")
-                                        .putExtra("activeDataTransmission", true)
-                                )
-
-                                if (testType == TestType.RANGE) {
-                                    val receivedTransmissionPacket: TransmissionPaketRangeTest =
-                                        Json.decodeFromString<TransmissionPaketRangeTest>(
-                                            info.serviceSpecificInfo?.decodeToString().toString()
-                                        )
-
-                                    val measurementRangeTest: MeasurementRangeTest =
-                                        MeasurementRangeTest(
-                                            receivedTransmissionPacket.coordinatesSender,
-                                            receivedTransmissionPacket.timestampSending,
-                                            receivedTransmissionPacket.additionalInfoSender,
-                                            LocationService.currentCoordinates.toString(),
-                                            LocalDateTime.now().toString()
-                                        )
-
-                                    measurementRangeTests.add(measurementRangeTest)
-
-                                    LogController.log(
-                                        Log.INFO,
-                                        "Wifi-Aware-Receiver",
-                                        "New Measurement: ${measurementRangeTest}"
+                                if (trustedTimeClient != null) {//TODO: Timestamp calculation accuracy?
+                                    val timestampReceiving: LocalDateTime = LocalDateTime.ofInstant(
+                                        trustedTimeClient!!.computeCurrentInstant(),
+                                        ZoneOffset.systemDefault()
                                     )
+
+                                    sendBroadcast(
+                                        Intent().setAction("MEASUREMENT_BROADCAST")
+                                            .putExtra("activeDataTransmission", true)
+                                    )
+
+                                    if (testType == TestType.RANGE) {
+                                        val receivedTransmissionPacket: TransmissionPaketRangeTest =
+                                            Json.decodeFromString<TransmissionPaketRangeTest>(
+                                                info.serviceSpecificInfo?.decodeToString()
+                                                    .toString()
+                                            )
+
+                                        val measurementRangeTest: MeasurementRangeTest =
+                                            MeasurementRangeTest(
+                                                receivedTransmissionPacket.coordinatesSender,
+                                                receivedTransmissionPacket.timestampSending,
+                                                receivedTransmissionPacket.additionalInfoSender,
+                                                LocationService.currentCoordinates.toString(),
+                                                timestampReceiving.toString()
+                                            )
+
+                                        measurementRangeTests.add(measurementRangeTest)
+
+                                        LogController.log(
+                                            Log.INFO,
+                                            "Wifi-Aware-Receiver",
+                                            "New Measurement: ${measurementRangeTest}"
+                                        )
+                                    }
                                 }
                             }
                         }, callbackHandler
@@ -169,7 +175,7 @@ class WifiAwareReceiverService : WifiAwareService() {
             Role.RECEIVER.toString()
         )
 
-        if (intent != null && intent.getStringExtra("TestType") == "Distance Test") {
+        if (intent != null && intent.getStringExtra("TestType") == TestType.RANGE.name) {
             applicationContext.startService(Intent(applicationContext, LocationService::class.java))
 
             testType = TestType.RANGE
@@ -182,9 +188,18 @@ class WifiAwareReceiverService : WifiAwareService() {
                         context: Context?,
                         intent: Intent?
                     ) {
+                        val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                            LocalDateTime.now()
+                        } else {
+                            LocalDateTime.ofInstant(
+                                trustedTimeClient!!.computeCurrentInstant(),
+                                ZoneOffset.systemDefault()
+                            )
+                        }
+
                         val measurementBatteryTest: MeasurementBatteryTest = MeasurementBatteryTest(
                             intent!!.getIntExtra(BatteryManager.EXTRA_LEVEL, 101).toString(),
-                            LocalDateTime.now().toString(),
+                            timestamp.toString(),
                             ""
                         )
 

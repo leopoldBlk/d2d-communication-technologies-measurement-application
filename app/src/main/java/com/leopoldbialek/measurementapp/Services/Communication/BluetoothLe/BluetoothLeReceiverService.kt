@@ -31,6 +31,7 @@ import com.leopoldbialek.measurementapp.Utils.LogController
 import com.leopoldbialek.measurementapp.Utils.PersistenceController
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.math.pow
 import kotlin.math.roundToLong
@@ -68,20 +69,29 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                             .putExtra("activeDataTransmission", true)
                     )
 
-                    val receivedTransmissionPacket: TransmissionPaketRangeTest =
-                        Json.decodeFromString<TransmissionPaketRangeTest>(
-                            result.scanRecord?.serviceData?.get(serviceUUID)?.decodeToString()
-                                .toString()
-                        )
-
                     if (testType == TestType.RANGE) {
                         //TODO: Why is timestamp for sending after the one for receiving?
+                        val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                            LocalDateTime.now()
+                        } else {
+                            LocalDateTime.ofInstant(
+                                trustedTimeClient!!.computeCurrentInstant(),
+                                ZoneOffset.systemDefault()
+                            )
+                        }
+
+                        val receivedTransmissionPacket: TransmissionPaketRangeTest =
+                            Json.decodeFromString<TransmissionPaketRangeTest>(
+                                result.scanRecord?.serviceData?.get(serviceUUID)?.decodeToString()
+                                    .toString()
+                            )
+
                         val measurementRangeTest: MeasurementRangeTest = MeasurementRangeTest(
                             receivedTransmissionPacket.coordinatesSender,
                             receivedTransmissionPacket.timestampSending,
                             receivedTransmissionPacket.additionalInfoSender,
                             LocationService.currentCoordinates.toString(),
-                            LocalDateTime.now().toString(),
+                            timestamp.toString(),
                             "PHY Config: ${bleReceiverPhy.name}; RSSI: ${result.rssi}"
                         )
 
@@ -136,28 +146,41 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                 PHY_LE_ALL_SUPPORTED
             }
 
-        if (intent != null && intent.getStringExtra("TestType") == "Distance Test") {
+        if (intent != null && intent.getStringExtra("TestType") == TestType.RANGE.name) {
             applicationContext.startService(Intent(applicationContext, LocationService::class.java))
 
             testType = TestType.RANGE
         } else {
             testType = TestType.BATTERY
 
-            registerReceiver(
-                object : BroadcastReceiver() {
-                    override fun onReceive(
-                        context: Context?,
-                        intent: Intent?
-                    ) {
-                        val measurementBatteryTest: MeasurementBatteryTest = MeasurementBatteryTest(
-                            intent!!.getIntExtra(BatteryManager.EXTRA_LEVEL, 101).toString(),
-                            LocalDateTime.now().toString(),
-                            "PHY Config: ${bleReceiverPhy.name}"
+            batteryChangeBroadcastReceiver = object : BroadcastReceiver() {
+                override fun onReceive(
+                    context: Context?,
+                    intent: Intent?
+                ) {
+                    val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                        LocalDateTime.now()
+                    } else {
+                        LocalDateTime.ofInstant(
+                            trustedTimeClient!!.computeCurrentInstant(),
+                            ZoneOffset.systemDefault()
                         )
-
-                        measurements.add(measurementBatteryTest)
                     }
-                }, IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_EXPORTED
+
+                    val measurementBatteryTest: MeasurementBatteryTest = MeasurementBatteryTest(
+                        intent!!.getIntExtra(BatteryManager.EXTRA_LEVEL, 101).toString(),
+                        timestamp.toString(),
+                        "PHY Config: ${bleReceiverPhy.name}"
+                    )
+
+                    measurements.add(measurementBatteryTest)
+                }
+            }
+
+            registerReceiver(
+                batteryChangeBroadcastReceiver,
+                IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+                RECEIVER_EXPORTED
             )
         }
 
@@ -180,6 +203,8 @@ class BluetoothLeReceiverService : BluetoothLeService() {
 
         if (testType == TestType.RANGE) {
             applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
+        } else {
+            unregisterReceiver(batteryChangeBroadcastReceiver)
         }
 
         persistenceController.persistData(measurements.toString())
