@@ -10,7 +10,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeReceiverPhy
-import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPhy
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPrimaryPhy
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderSecondaryPhy
 import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
 
@@ -19,10 +20,10 @@ fun TechnologySelection(
     selectedTechnology: Technology,
     changeSelectedTechnology: (Technology) -> Unit,
     selectedRole: Role,
-    selectedBluetoothLeSenderPrimaryPhy: BluetoothLeSenderPhy,
-    changeSelectedBluetoothLeSenderPrimaryPhy: (BluetoothLeSenderPhy) -> Unit,
-    selectedBluetoothLeSenderSecondaryPhy: BluetoothLeSenderPhy,
-    changeSelectedBluetoothLeSenderSecondaryPhy: (BluetoothLeSenderPhy) -> Unit,
+    selectedBluetoothLeSenderPrimaryPhy: BluetoothLeSenderPrimaryPhy,
+    changeSelectedBluetoothLeSenderPrimaryPhy: (BluetoothLeSenderPrimaryPhy) -> Unit,
+    selectedBluetoothLeSenderSecondaryPhy: BluetoothLeSenderSecondaryPhy,
+    changeSelectedBluetoothLeSenderSecondaryPhy: (BluetoothLeSenderSecondaryPhy) -> Unit,
     selectedBluetoothLeReceiverPhy: BluetoothLeReceiverPhy,
     changeSelectedBluetoothLeReceiverPhy: (BluetoothLeReceiverPhy) -> Unit,
     activeMeasurement: Boolean

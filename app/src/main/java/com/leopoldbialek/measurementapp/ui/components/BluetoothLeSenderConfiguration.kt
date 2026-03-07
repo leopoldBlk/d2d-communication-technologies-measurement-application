@@ -13,16 +13,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPhy
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPrimaryPhy
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderSecondaryPhy
 import com.leopoldbialek.measurementapp.Enums.Technology
 
 @Composable
 fun BluetoothLeSenderConfiguration(
     selectedTechnology: Technology,
-    selectedBluetoothLeSenderPrimaryPhy: BluetoothLeSenderPhy,
-    changeSelectedBluetoothLeSenderPrimaryPhy: (BluetoothLeSenderPhy) -> Unit,
-    selectedBluetoothLeConfigSecondaryPhy: BluetoothLeSenderPhy,
-    changeSelectedBluetoothLeSenderSecondaryPhy: (BluetoothLeSenderPhy) -> Unit,
+    selectedBluetoothLeSenderPrimaryPhy: BluetoothLeSenderPrimaryPhy,
+    changeSelectedBluetoothLeSenderPrimaryPhy: (BluetoothLeSenderPrimaryPhy) -> Unit,
+    selectedBluetoothLeConfigSecondaryPhy: BluetoothLeSenderSecondaryPhy,
+    changeSelectedBluetoothLeSenderSecondaryPhy: (BluetoothLeSenderSecondaryPhy) -> Unit,
     activeMeasurement: Boolean
 ) {
     Row(
@@ -33,7 +34,7 @@ fun BluetoothLeSenderConfiguration(
         Column() {
             Text("Primary PHY", fontSize = 15.sp, fontWeight = FontWeight.Bold)
 
-            BluetoothLeSenderPhy.entries.forEach { bluetoothLeSenderPhy ->
+            BluetoothLeSenderPrimaryPhy.entries.forEach { bluetoothLeSenderPhy ->
                 Row() {
                     RadioButton(
                         bluetoothLeSenderPhy == selectedBluetoothLeSenderPrimaryPhy,
@@ -54,7 +55,7 @@ fun BluetoothLeSenderConfiguration(
         Column() {
             Text("Secondary PHY", fontSize = 15.sp, fontWeight = FontWeight.Bold)
 
-            BluetoothLeSenderPhy.entries.forEach { bluetoothLeSenderPhy ->
+            BluetoothLeSenderSecondaryPhy.entries.forEach { bluetoothLeSenderPhy ->
                 Row() {
                     RadioButton(
                         bluetoothLeSenderPhy == selectedBluetoothLeConfigSecondaryPhy,

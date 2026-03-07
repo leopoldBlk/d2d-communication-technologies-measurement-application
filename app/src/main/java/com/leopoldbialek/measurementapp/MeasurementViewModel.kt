@@ -4,13 +4,13 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeReceiverPhy
-import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPhy
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPrimaryPhy
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderSecondaryPhy
 import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
 import com.leopoldbialek.measurementapp.Enums.TestType
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import java.util.UUID
 
 class MeasurementViewModel : ViewModel() {
     var activeMeasurement: MutableState<Boolean> = mutableStateOf(false)
@@ -24,10 +24,11 @@ class MeasurementViewModel : ViewModel() {
     var selectedTechnology: MutableState<Technology> = mutableStateOf(Technology.BLUETOOTH_LE)
         private set
 
-    var selectedBluetoothLeSenderPrimaryPhy: MutableState<BluetoothLeSenderPhy> = mutableStateOf(BluetoothLeSenderPhy.PHY_1M)
+    var selectedBluetoothLeSenderPrimaryPhy: MutableState<BluetoothLeSenderPrimaryPhy> = mutableStateOf(BluetoothLeSenderPrimaryPhy.PHY_1M)
         private set
 
-    var selectedBluetoothLeSenderSecondaryPhy: MutableState<BluetoothLeSenderPhy> = mutableStateOf(BluetoothLeSenderPhy.PHY_1M)
+    var selectedBluetoothLeSenderSecondaryPhy: MutableState<BluetoothLeSenderSecondaryPhy> = mutableStateOf(
+        BluetoothLeSenderSecondaryPhy.PHY_1M)
         private set
 
     var selectedBluetoothLeReceiverPhy: MutableState<BluetoothLeReceiverPhy> = mutableStateOf(BluetoothLeReceiverPhy.PHY_1M)
@@ -59,11 +60,11 @@ class MeasurementViewModel : ViewModel() {
         selectedTechnology.value = technology
     }
 
-    fun changeSelectedBluetoothLeSenderPrimaryPhy(bluetoothLeSenderPrimaryPhy: BluetoothLeSenderPhy) {
+    fun changeSelectedBluetoothLeSenderPrimaryPhy(bluetoothLeSenderPrimaryPhy: BluetoothLeSenderPrimaryPhy) {
         selectedBluetoothLeSenderPrimaryPhy.value = bluetoothLeSenderPrimaryPhy
     }
 
-    fun changeSelectedBluetoothLeSenderSecondaryPhy(bluetoothLeSenderSecondaryPhy: BluetoothLeSenderPhy) {
+    fun changeSelectedBluetoothLeSenderSecondaryPhy(bluetoothLeSenderSecondaryPhy: BluetoothLeSenderSecondaryPhy) {
         selectedBluetoothLeSenderSecondaryPhy.value = bluetoothLeSenderSecondaryPhy
     }
 

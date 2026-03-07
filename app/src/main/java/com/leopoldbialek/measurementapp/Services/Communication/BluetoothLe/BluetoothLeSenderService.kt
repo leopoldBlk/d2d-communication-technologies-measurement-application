@@ -21,7 +21,8 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
 import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPaketRangeTest
-import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPhy
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPrimaryPhy
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderSecondaryPhy
 import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
 import com.leopoldbialek.measurementapp.Enums.TestType
@@ -120,19 +121,19 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                 )
             }
 
-            val primaryPhy: BluetoothLeSenderPhy = if (advertisingSetParameters.primaryPhy == BluetoothDevice.PHY_LE_1M){
-                BluetoothLeSenderPhy.PHY_1M
-            }
-            else{
-                BluetoothLeSenderPhy.PHY_LE_CODED
-            }
+            val primaryPhy: BluetoothLeSenderPrimaryPhy =
+                if (advertisingSetParameters.primaryPhy == BluetoothDevice.PHY_LE_1M) {
+                    BluetoothLeSenderPrimaryPhy.PHY_1M
+                } else {
+                    BluetoothLeSenderPrimaryPhy.PHY_LE_CODED
+                }
 
-            val secondaryPhy: BluetoothLeSenderPhy = if (advertisingSetParameters.secondaryPhy == BluetoothDevice.PHY_LE_1M){
-                BluetoothLeSenderPhy.PHY_1M
-            }
-            else{
-                BluetoothLeSenderPhy.PHY_LE_CODED
-            }
+            val secondaryPhy: BluetoothLeSenderPrimaryPhy =
+                if (advertisingSetParameters.secondaryPhy == BluetoothDevice.PHY_LE_1M) {
+                    BluetoothLeSenderPrimaryPhy.PHY_1M
+                } else {
+                    BluetoothLeSenderPrimaryPhy.PHY_LE_CODED
+                }
 
             advertisingData = AdvertiseData
                 .Builder()
@@ -201,19 +202,22 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                         )
                     }
 
-                    val primaryPhy: BluetoothLeSenderPhy = if (advertisingSetParameters.primaryPhy == BluetoothDevice.PHY_LE_1M){
-                        BluetoothLeSenderPhy.PHY_1M
-                    }
-                    else{
-                        BluetoothLeSenderPhy.PHY_LE_CODED
-                    }
+                    val primaryPhy: BluetoothLeSenderPrimaryPhy =
+                        if (advertisingSetParameters.primaryPhy == BluetoothDevice.PHY_LE_1M) {
+                            BluetoothLeSenderPrimaryPhy.PHY_1M
+                        } else {
+                            BluetoothLeSenderPrimaryPhy.PHY_LE_CODED
+                        }
 
-                    val secondaryPhy: BluetoothLeSenderPhy = if (advertisingSetParameters.secondaryPhy == BluetoothDevice.PHY_LE_1M){
-                        BluetoothLeSenderPhy.PHY_1M
-                    }
-                    else{
-                        BluetoothLeSenderPhy.PHY_LE_CODED
-                    }
+                    val secondaryPhy: BluetoothLeSenderSecondaryPhy =
+                        if (advertisingSetParameters.secondaryPhy == BluetoothDevice.PHY_LE_1M) {
+                            BluetoothLeSenderSecondaryPhy.PHY_1M
+                        } else if (advertisingSetParameters.secondaryPhy == BluetoothDevice.PHY_LE_2M){
+                            BluetoothLeSenderSecondaryPhy.PHY_2M
+                        }
+                        else {
+                            BluetoothLeSenderSecondaryPhy.PHY_LE_CODED
+                        }
 
                     val measurementBatteryTest: MeasurementBatteryTest = MeasurementBatteryTest(
                         intent!!.getIntExtra(BatteryManager.EXTRA_LEVEL, 101).toString(),
@@ -235,15 +239,17 @@ class BluetoothLeSenderService() : BluetoothLeService() {
         bleAdvertiser = blAdapter.bluetoothLeAdvertiser
 
         val primaryPhy: Int =
-            if (intent?.getStringExtra("PrimarySenderPhy") == BluetoothLeSenderPhy.PHY_1M.name) {
+            if (intent?.getStringExtra("PrimarySenderPhy") == BluetoothLeSenderPrimaryPhy.PHY_1M.name) {
                 BluetoothDevice.PHY_LE_1M
             } else {
                 BluetoothDevice.PHY_LE_CODED
             }
 
         val secondaryPhy: Int =
-            if (intent?.getStringExtra("SecondarySenderPhy") == BluetoothLeSenderPhy.PHY_1M.name) {
+            if (intent?.getStringExtra("SecondarySenderPhy") == BluetoothLeSenderSecondaryPhy.PHY_1M.name) {
                 BluetoothDevice.PHY_LE_1M
+            } else if (intent?.getStringExtra("SecondarySenderPhy") == BluetoothLeSenderSecondaryPhy.PHY_2M.name) {
+                BluetoothDevice.PHY_LE_2M
             } else {
                 BluetoothDevice.PHY_LE_CODED
             }

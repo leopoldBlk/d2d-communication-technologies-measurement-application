@@ -12,7 +12,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeReceiverPhy
-import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPhy
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPrimaryPhy
+import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderSecondaryPhy
 import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
 import com.leopoldbialek.measurementapp.Enums.TestType
@@ -20,7 +21,6 @@ import com.leopoldbialek.measurementapp.Services.Communication.BluetoothLe.Bluet
 import com.leopoldbialek.measurementapp.Services.Communication.BluetoothLe.BluetoothLeSenderService
 import com.leopoldbialek.measurementapp.Services.Communication.WiFi.Aware.WifiAwareReceiverService
 import com.leopoldbialek.measurementapp.Services.Communication.WiFi.Aware.WifiAwareSenderService
-import com.leopoldbialek.measurementapp.Services.Location.LocationService
 
 @Composable
 fun ControlButtons(
@@ -30,8 +30,8 @@ fun ControlButtons(
     selectedTestType: TestType,
     activeMeasurement: Boolean,
     changedMeasurementState: () -> Unit,
-    selectedBluetoothLeSenderPrimaryPhy: BluetoothLeSenderPhy,
-    selectedBluetoothLeSenderSecondaryPhy: BluetoothLeSenderPhy,
+    selectedBluetoothLeSenderPrimaryPhy: BluetoothLeSenderPrimaryPhy,
+    selectedBluetoothLeSenderSecondaryPhy: BluetoothLeSenderSecondaryPhy,
     selectedBluetoothLeReceiverPhy: BluetoothLeReceiverPhy
 ) {
     Column(
@@ -80,8 +80,8 @@ private fun startServices(
     selectedTechnology: Technology,
     selectedRole: Role,
     selectedTestType: TestType,
-    selectedBluetoothLeSenderPrimaryPhy: BluetoothLeSenderPhy,
-    selectedBluetoothLeConfigSecondaryPhy: BluetoothLeSenderPhy,
+    selectedBluetoothLeSenderPrimaryPhy: BluetoothLeSenderPrimaryPhy,
+    selectedBluetoothLeConfigSecondaryPhy: BluetoothLeSenderSecondaryPhy,
     selectedBluetoothLeReceiverPhy: BluetoothLeReceiverPhy
 ) {
     if (selectedTechnology == Technology.BLUETOOTH_LE && selectedRole == Role.SENDER) {
