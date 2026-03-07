@@ -43,7 +43,7 @@ fun BluetoothLeSenderConfiguration(
                         enabled = !activeMeasurement && selectedTechnology == Technology.BLUETOOTH_LE
                     )
                     Text(
-                        bluetoothLeSenderPhy.toString(), Modifier.align(Alignment.CenterVertically)
+                        bluetoothLeSenderPhy.toString().replace("PHY_", ""), Modifier.align(Alignment.CenterVertically)
                     )
                 }
             }
@@ -64,7 +64,7 @@ fun BluetoothLeSenderConfiguration(
                         enabled = !activeMeasurement && selectedTechnology == Technology.BLUETOOTH_LE
                     )
                     Text(
-                        bluetoothLeSenderPhy.toString(), Modifier.align(Alignment.CenterVertically)
+                        bluetoothLeSenderPhy.toString().replace("PHY_", ""), Modifier.align(Alignment.CenterVertically)
                     )
                 }
             }

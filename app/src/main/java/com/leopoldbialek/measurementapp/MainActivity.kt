@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MeasurementAppTheme {
                 Column(
-                    Modifier.padding(start = 25.dp), Arrangement.spacedBy(50.dp)
+                    Modifier.padding(start = 25.dp), Arrangement.spacedBy(35.dp)
                 ) {
                     Spacer(
                         Modifier.height(20.dp)

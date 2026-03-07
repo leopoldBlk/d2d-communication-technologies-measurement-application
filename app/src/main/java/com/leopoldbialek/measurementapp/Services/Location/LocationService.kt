@@ -24,6 +24,7 @@ class LocationService : Service() {
         public var currentCoordinates: Coordinates = Coordinates(0.0, 0.0)
     }
 
+    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var locationUpdaterThreadLooper: Looper
 
     @SuppressLint("MissingPermission")
@@ -43,8 +44,6 @@ class LocationService : Service() {
         Looper.loop()
     }
 
-    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
-
     val locationListener: LocationListener = LocationListener { location ->
         currentCoordinates = Coordinates(location.latitude, location.longitude)
 
@@ -55,16 +54,16 @@ class LocationService : Service() {
         )
     }
 
-    override fun onBind(intent: Intent): IBinder {
-        TODO("Return the communication channel to the service.")
-    }
-
     @RequiresApi(Build.VERSION_CODES.R)
     @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
     override fun onCreate() {
         super.onCreate()
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(applicationContext)
+    }
+
+    override fun onBind(intent: Intent): IBinder {
+        TODO("Return the communication channel to the service.")
     }
 
     @RequiresApi(Build.VERSION_CODES.S)

@@ -13,9 +13,6 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class MeasurementViewModel : ViewModel() {
-
-    val deviceUuid: UUID = UUID.randomUUID()
-
     var activeMeasurement: MutableState<Boolean> = mutableStateOf(false)
         private set
 
