@@ -17,30 +17,31 @@ import java.util.UUID
 abstract class BluetoothLeService() : Service() {
     protected lateinit var blManager: BluetoothManager
     protected lateinit var blAdapter: BluetoothAdapter
+
     protected lateinit var batteryManager: BatteryManager
-    protected lateinit var testType: TestType
-    protected lateinit var persistenceController: PersistenceController
-    protected var trustedTimeClient: TrustedTimeClient? = null
     protected lateinit var batteryChangeBroadcastReceiver: BroadcastReceiver
 
-    protected val measurements: MutableList<Any> =
-        mutableListOf<Any>()
-    private val checkSupportedBleFeatures: Boolean = false
+    protected lateinit var testType: TestType
+    protected lateinit var persistenceController: PersistenceController
+
     protected val serviceUUID: ParcelUuid =
         ParcelUuid(UUID.fromString("361f2683-ebbe-423c-bf78-e3e5efbf86f1"))
+    protected val measurements: MutableList<Any> =
+        mutableListOf<Any>()
+    protected var trustedTimeClient: TrustedTimeClient? = null
+    private val checkSupportedBleFeatures: Boolean = false
 
     override fun onCreate() {
         super.onCreate()
-
-        TrustedTime.createClient(applicationContext).addOnSuccessListener { trustedTimeClient ->
-            this.trustedTimeClient = trustedTimeClient
-        }
-
 
         blManager = applicationContext.getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
         blAdapter = blManager.adapter
 
         batteryManager = applicationContext.getSystemService(BATTERY_SERVICE) as BatteryManager
+
+        TrustedTime.createClient(applicationContext).addOnSuccessListener { trustedTimeClient ->
+            this.trustedTimeClient = trustedTimeClient
+        }
 
         if (checkSupportedBleFeatures) {
             val supportedBleFeatures: MutableMap<String, Boolean> = mutableMapOf(

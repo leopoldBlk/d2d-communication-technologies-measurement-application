@@ -38,8 +38,8 @@ import kotlin.math.roundToLong
 
 class BluetoothLeReceiverService : BluetoothLeService() {
     private lateinit var bleScanner: BluetoothLeScanner
-    private lateinit var scanSettings: ScanSettings
     private lateinit var bleReceiverPhy: BluetoothLeReceiverPhy
+    private lateinit var scanSettings: ScanSettings
 
     @SuppressLint("MissingPermission")
     private val scanningThread: Thread = Thread {
@@ -59,18 +59,12 @@ class BluetoothLeReceiverService : BluetoothLeService() {
 
             if (result != null) {
                 if (!result.isLegacy && result.scanRecord?.serviceUuids?.contains(serviceUUID) == true) {
-                    val timestampMillisTransmissionPacketReceived: Long =
-                        System.currentTimeMillis() - SystemClock.elapsedRealtime() + (result.timestampNanos * 10.0.pow(
-                            -6
-                        )).roundToLong()
-
-                    sendBroadcast(
-                        Intent().setAction("MEASUREMENT_BROADCAST")
-                            .putExtra("activeDataTransmission", true)
-                    )
+//                    val timestampMillisTransmissionPacketReceived: Long =
+//                        System.currentTimeMillis() - SystemClock.elapsedRealtime() + (result.timestampNanos * 10.0.pow(
+//                            -6
+//                        )).roundToLong()
 
                     if (testType == TestType.RANGE) {
-                        //TODO: Why is timestamp for sending after the one for receiving?
                         val timestamp: LocalDateTime = if (trustedTimeClient == null) {
                             LocalDateTime.now()
                         } else {
@@ -109,6 +103,11 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                             "New Measurement: ${measurements.last()}"
                         )
                     }
+
+                    sendBroadcast(
+                        Intent().setAction("MEASUREMENT_BROADCAST")
+                            .putExtra("activeDataTransmission", true)
+                    )
                 }
             }
         }
@@ -131,7 +130,7 @@ class BluetoothLeReceiverService : BluetoothLeService() {
         persistenceController = PersistenceController(
             Technology.BLUETOOTH_LE.name,
             intent!!.getStringExtra("TestType")!!,
-            Role.RECEIVER.toString()
+            Role.RECEIVER.name
         )
 
         val phy: Int =

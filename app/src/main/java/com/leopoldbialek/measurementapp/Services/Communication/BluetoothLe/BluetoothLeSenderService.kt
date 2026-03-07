@@ -37,13 +37,13 @@ import kotlin.random.Random
 class BluetoothLeSenderService() : BluetoothLeService() {
     private lateinit var bleAdvertiser: BluetoothLeAdvertiser
     private lateinit var advertisingData: AdvertiseData
-    private lateinit var currentAdvertisingSet: AdvertisingSet
     private lateinit var advertisingSetParameters: AdvertisingSetParameters
+    private lateinit var currentAdvertisingSet: AdvertisingSet
 
     @SuppressLint("MissingPermission")
     private val advertiseDataUpdater: Thread = Thread {
         while (!Thread.currentThread().isInterrupted) {
-            setAdvertisingData()
+            setupAdvertisingData()
 
             currentAdvertisingSet.setAdvertisingData(advertisingData)
 
@@ -51,7 +51,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                 Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", true)
             )
 
-            LogController.log(Log.INFO, "Bluetooth-Sender", "Updated Advertising Data!")
+            LogController.log(Log.INFO, "Bluetooth-LE-Sender", "Updated Advertising Data!")
         }
     }
 
@@ -108,7 +108,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
         }
     }
 
-    private fun setAdvertisingData() {
+    private fun setupAdvertisingData() {
         if (testType == TestType.RANGE) {
 
             val timestamp: LocalDateTime = if (trustedTimeClient == null) {
@@ -118,6 +118,20 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                     trustedTimeClient!!.computeCurrentInstant(),
                     ZoneOffset.systemDefault()
                 )
+            }
+
+            val primaryPhy: BluetoothLeSenderPhy = if (advertisingSetParameters.primaryPhy == BluetoothDevice.PHY_LE_1M){
+                BluetoothLeSenderPhy.PHY_1M
+            }
+            else{
+                BluetoothLeSenderPhy.PHY_LE_CODED
+            }
+
+            val secondaryPhy: BluetoothLeSenderPhy = if (advertisingSetParameters.secondaryPhy == BluetoothDevice.PHY_LE_1M){
+                BluetoothLeSenderPhy.PHY_1M
+            }
+            else{
+                BluetoothLeSenderPhy.PHY_LE_CODED
             }
 
             advertisingData = AdvertiseData
@@ -130,7 +144,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                         TransmissionPaketRangeTest(
                             LocationService.currentCoordinates.toString(),
                             timestamp.toString(),
-                            "Prim PHY Config: ${advertisingSetParameters.primaryPhy}; Sec PHY Config: ${advertisingSetParameters.secondaryPhy}"
+                            "Prim PHY Config: ${primaryPhy}; Sec PHY Config: ${secondaryPhy}"
                         )
                     ).encodeToByteArray()
                 ).build()
@@ -163,7 +177,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
         persistenceController = PersistenceController(
             Technology.BLUETOOTH_LE.name,
             intent!!.getStringExtra("TestType")!!,
-            Role.SENDER.toString()
+            Role.SENDER.name
         )
 
         if (intent != null && intent.getStringExtra("TestType") == TestType.RANGE.name) {
@@ -187,10 +201,24 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                         )
                     }
 
+                    val primaryPhy: BluetoothLeSenderPhy = if (advertisingSetParameters.primaryPhy == BluetoothDevice.PHY_LE_1M){
+                        BluetoothLeSenderPhy.PHY_1M
+                    }
+                    else{
+                        BluetoothLeSenderPhy.PHY_LE_CODED
+                    }
+
+                    val secondaryPhy: BluetoothLeSenderPhy = if (advertisingSetParameters.secondaryPhy == BluetoothDevice.PHY_LE_1M){
+                        BluetoothLeSenderPhy.PHY_1M
+                    }
+                    else{
+                        BluetoothLeSenderPhy.PHY_LE_CODED
+                    }
+
                     val measurementBatteryTest: MeasurementBatteryTest = MeasurementBatteryTest(
                         intent!!.getIntExtra(BatteryManager.EXTRA_LEVEL, 101).toString(),
                         timestamp.toString(),
-                        "Prim PHY Config: ${advertisingSetParameters.primaryPhy}; Sec PHY Config: ${advertisingSetParameters.secondaryPhy}"
+                        "Prim PHY Config: ${primaryPhy}; Sec PHY Config: ${secondaryPhy}"
                     )
 
                     measurements.add(measurementBatteryTest)
@@ -230,7 +258,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                 .setTxPowerLevel(TX_POWER_MEDIUM)
                 .build()
 
-        setAdvertisingData()
+        setupAdvertisingData()
 
         //Max Advertising Data Length: 1650 Bytes
         //val maxAdvertisingDataLength: Int = blAdapter.leMaximumAdvertisingDataLength
