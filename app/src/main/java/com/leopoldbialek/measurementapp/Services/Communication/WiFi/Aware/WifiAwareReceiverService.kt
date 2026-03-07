@@ -118,12 +118,12 @@ class WifiAwareReceiverService : WifiAwareService() {
                                         "Wifi-Aware-Receiver",
                                         "New Measurement: ${measurementRangeTest}"
                                     )
-
-                                    sendBroadcast(
-                                        Intent().setAction("MEASUREMENT_BROADCAST")
-                                            .putExtra("activeDataTransmission", true)
-                                    )
                                 }
+
+                                sendBroadcast(
+                                    Intent().setAction("MEASUREMENT_BROADCAST")
+                                        .putExtra("activeDataTransmission", true)
+                                )
                             }
                         }, callbackHandler
                     )
