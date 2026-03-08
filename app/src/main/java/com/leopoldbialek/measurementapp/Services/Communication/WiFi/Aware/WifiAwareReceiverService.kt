@@ -27,6 +27,7 @@ import com.leopoldbialek.measurementapp.Enums.TestType
 import com.leopoldbialek.measurementapp.Services.Location.LocationService
 import com.leopoldbialek.measurementapp.Utils.LogController
 import com.leopoldbialek.measurementapp.Utils.PersistenceController
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -114,7 +115,12 @@ class WifiAwareReceiverService : WifiAwareService() {
                                             timestamp.toString()
                                         )
 
-                                    measurements.add(measurementRangeTest)
+                                    measurements.add(Json.encodeToString(measurementRangeTest))
+
+                                    if(measurements.size >= 100){
+                                        persistenceController.persistData(measurements.toString())
+                                        measurements.clear()
+                                    }
 
                                     LogController.log(
                                         Log.INFO,
@@ -203,7 +209,12 @@ class WifiAwareReceiverService : WifiAwareService() {
                         ""
                     )
 
-                    measurements.add(measurementBatteryTest)
+                    measurements.add(Json.encodeToString(measurementBatteryTest))
+
+                    if(measurements.size >= 100){
+                        persistenceController.persistData(measurements.toString())
+                        measurements.clear()
+                    }
                 }
             }
 

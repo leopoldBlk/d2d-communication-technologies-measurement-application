@@ -5,10 +5,12 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.bluetooth.le.ScanSettings
+import android.bluetooth.le.ScanSettings.CALLBACK_TYPE_ALL_MATCHES
 import android.bluetooth.le.ScanSettings.PHY_LE_ALL_SUPPORTED
 import android.bluetooth.le.ScanSettings.SCAN_MODE_LOW_LATENCY
 import android.content.Intent
@@ -27,19 +29,23 @@ import com.leopoldbialek.measurementapp.Enums.TestType
 import com.leopoldbialek.measurementapp.Services.Location.LocationService
 import com.leopoldbialek.measurementapp.Utils.LogController
 import com.leopoldbialek.measurementapp.Utils.PersistenceController
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import kotlin.uuid.ExperimentalUuidApi
 
 class BluetoothLeReceiverService : BluetoothLeService() {
     private lateinit var bleScanner: BluetoothLeScanner
     private lateinit var bleReceiverPhy: BluetoothLeReceiverPhy
     private lateinit var scanSettings: ScanSettings
+    private lateinit var scanStartTimestamp: LocalDateTime
 
     @SuppressLint("MissingPermission")
-    private val scanningThread: Thread = Thread {
+    private var scanningThread: Thread = Thread {
         bleScanner.startScan(null, scanSettings, bleScanCallback)
+        scanStartTimestamp = LocalDateTime.now()
         LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Started Scanning!")
 
         while (!Thread.currentThread().isInterrupted) {
@@ -50,6 +56,7 @@ class BluetoothLeReceiverService : BluetoothLeService() {
     }
 
     @OptIn(ExperimentalUuidApi::class)
+    @SuppressLint("MissingPermission")
     private val bleScanCallback: ScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             super.onScanResult(callbackType, result)
@@ -87,13 +94,36 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                             "PHY: ${bleReceiverPhy.name}; RSSI: ${result.rssi}"
                         )
 
-                        measurements.add(measurementRangeTest)
+                        measurements.add(Json.encodeToString(measurementRangeTest))
 
                         LogController.log(
                             Log.INFO,
                             "Bluetooth-LE-Receiver",
                             "New Measurement: ${measurements.last()}"
                         )
+
+                        if(measurements.size >= 100){
+                            persistenceController.persistData(measurements.toString())
+                            measurements.clear()
+                        }
+
+                        if (ChronoUnit.MINUTES.between(scanStartTimestamp, timestamp) >= 3){
+                            scanningThread.interrupt()
+
+                            scanningThread = Thread {
+                                bleScanner.startScan(null, scanSettings, bleScanCallback)
+                                scanStartTimestamp = LocalDateTime.now()
+                                LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Started Scanning!")
+
+                                while (!Thread.currentThread().isInterrupted) {
+                                }
+
+                                bleScanner.stopScan(bleScanCallback)
+                                LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Stopped Scanning!")
+                            }
+
+                            scanningThread.start()
+                        }
                     }
 
                     sendBroadcast(
@@ -164,7 +194,12 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                         "PHY Config: ${bleReceiverPhy.name}"
                     )
 
-                    measurements.add(measurementBatteryTest)
+                    measurements.add(Json.encodeToString(measurementBatteryTest))
+
+                    if(measurements.size >= 100){
+                        persistenceController.persistData(measurements.toString())
+                        measurements.clear()
+                    }
                 }
             }
 

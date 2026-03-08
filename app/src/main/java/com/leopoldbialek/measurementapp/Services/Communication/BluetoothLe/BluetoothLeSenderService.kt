@@ -153,7 +153,12 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                     Json.encodeToString(transmissionPacketRangeTest).encodeToByteArray()
                 ).build()
 
-            measurements.add(transmissionPacketRangeTest)
+            measurements.add(Json.encodeToString(transmissionPacketRangeTest))
+
+            if(measurements.size >= 100){
+                persistenceController.persistData(measurements.toString())
+                measurements.clear()
+            }
 
         } else {
             advertisingData = AdvertiseData
@@ -227,7 +232,12 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                         "Prim PHY Config: ${primaryPhy}; Sec PHY Config: ${secondaryPhy}"
                     )
 
-                    measurements.add(measurementBatteryTest)
+                    measurements.add(Json.encodeToString(measurementBatteryTest))
+
+                    if(measurements.size >= 100){
+                        persistenceController.persistData(measurements.toString())
+                        measurements.clear()
+                    }
                 }
             }
 

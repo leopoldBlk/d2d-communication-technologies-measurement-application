@@ -5,7 +5,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @Serializable
-data class MeasurementRangeTest @OptIn(ExperimentalUuidApi::class) constructor(
+data class MeasurementRangeTest constructor(
     val paketUuid: String,
     val coordinatesSender: String,
     val timestampSending: String,

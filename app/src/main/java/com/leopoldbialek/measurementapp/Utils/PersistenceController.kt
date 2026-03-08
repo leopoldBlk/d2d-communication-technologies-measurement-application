@@ -13,25 +13,35 @@ class PersistenceController(
     private lateinit var fileWriter: FileWriter
     private lateinit var measurementFile: File
 
+    private var alreadyPersistedBatch: Boolean = false
+
     private val measurementFilesDir =
         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
             .toString() + "/Measurements/"
 
     fun persistData(dataToPersist: String) {
-        if (!File(measurementFilesDir).exists()) {
-            File(measurementFilesDir).mkdir()
+        if(!alreadyPersistedBatch){
+            if (!File(measurementFilesDir).exists()) {
+                File(measurementFilesDir).mkdir()
+            }
+
+            measurementFile = File(
+                measurementFilesDir + technology + "_" + testType + "_" + role + "_" + LocalDateTime.now()
+                    .toString()
+                    .replace("T", "_")
+                    .replace(":", "-") + ".txt"
+            )
+
+            fileWriter = FileWriter(measurementFile)
+            fileWriter.write(dataToPersist)
+            fileWriter.close()
+
+            alreadyPersistedBatch = true
         }
-
-        measurementFile = File(
-            measurementFilesDir + technology + "_" + testType + "_" + role + "_" + LocalDateTime.now()
-                .toString()
-                .replace("T", "_")
-                .replace(":", "-") + ".txt"
-        )
-
-        fileWriter = FileWriter(measurementFile)
-
-        fileWriter.write(dataToPersist)
-        fileWriter.close()
+        else{
+            fileWriter= FileWriter(measurementFile, true)
+            fileWriter.write(dataToPersist)
+            fileWriter.close()
+        }
     }
 }

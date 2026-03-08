@@ -119,7 +119,12 @@ class WifiAwareSenderService : WifiAwareService() {
                         Json.encodeToString(transmissionPacketRangeTest).encodeToByteArray()
                     ).build()
 
-            measurements.add(transmissionPacketRangeTest)
+            measurements.add(Json.encodeToString(transmissionPacketRangeTest))
+
+            if(measurements.size >= 100){
+                persistenceController.persistData(measurements.toString())
+                measurements.clear()
+            }
 
         } else {
             publishServiceConfig =
@@ -215,7 +220,12 @@ class WifiAwareSenderService : WifiAwareService() {
                         ""
                     )
 
-                    measurements.add(measurementBatteryTest)
+                    measurements.add(Json.encodeToString(measurementBatteryTest))
+
+                    if(measurements.size >= 100){
+                        persistenceController.persistData(measurements.toString())
+                        measurements.clear()
+                    }
                 }
             }
 
