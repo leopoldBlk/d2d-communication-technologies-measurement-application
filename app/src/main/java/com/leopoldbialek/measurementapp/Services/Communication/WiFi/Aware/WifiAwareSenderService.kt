@@ -106,7 +106,9 @@ class WifiAwareSenderService : WifiAwareService() {
             val transmissionPacketRangeTest: TransmissionPacketRangeTest = TransmissionPacketRangeTest(
                 UUID.randomUUID().toString(),
                 LocationService.currentCoordinates.toString(),
-                timestamp.toString()
+                timestamp.toString(),
+                // Length: 28 Chars
+                "<----PLACEHOLDER-STRING---->"
             )
 
             publishServiceConfig =
