@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
                 android.Manifest.permission.BLUETOOTH_CONNECT,
                 android.Manifest.permission.ACCESS_COARSE_LOCATION,
                 android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_BACKGROUND_LOCATION,
                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 android.Manifest.permission.READ_EXTERNAL_STORAGE,
                 android.Manifest.permission.ACCESS_WIFI_STATE,
