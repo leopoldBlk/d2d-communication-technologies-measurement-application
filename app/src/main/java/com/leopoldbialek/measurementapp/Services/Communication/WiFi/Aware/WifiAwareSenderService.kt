@@ -14,16 +14,14 @@ import android.net.wifi.aware.PublishDiscoverySession
 import android.net.wifi.aware.WifiAwareManager
 import android.net.wifi.aware.WifiAwareSession
 import android.os.BatteryManager
-import android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
 import com.leopoldbialek.measurementapp.Services.Location.LocationService
-import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPaketRangeTest
+import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPacketRangeTest
 import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
 import com.leopoldbialek.measurementapp.Utils.LogController
@@ -32,12 +30,12 @@ import com.leopoldbialek.measurementapp.Utils.PersistenceController
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
-import java.util.TimeZone
-import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 class WifiAwareSenderService : WifiAwareService() {
     private lateinit var publishServiceConfig: PublishConfig
@@ -92,6 +90,7 @@ class WifiAwareSenderService : WifiAwareService() {
         wifiAwareSession.close()
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     @SuppressLint("MissingPermission")
     fun startPublishing() {
         if (testType == TestType.RANGE) {
@@ -104,18 +103,21 @@ class WifiAwareSenderService : WifiAwareService() {
                 )
             }
 
+            val transmissionPacketRangeTest: TransmissionPacketRangeTest = TransmissionPacketRangeTest(
+                UUID.randomUUID().toString(),
+                LocationService.currentCoordinates.toString(),
+                timestamp.toString()
+            )
+
             publishServiceConfig =
                 PublishConfig.Builder()
                     .setServiceName(serviceUUID.toString())
                     .setTtlSec(1)
                     .setServiceSpecificInfo(
-                        Json.encodeToString(
-                            TransmissionPaketRangeTest(
-                                LocationService.currentCoordinates.toString(),
-                                timestamp.toString()
-                            )
-                        ).encodeToByteArray()
+                        Json.encodeToString(transmissionPacketRangeTest).encodeToByteArray()
                     ).build()
+
+            measurements.add(transmissionPacketRangeTest)
 
         } else {
             publishServiceConfig =
@@ -239,8 +241,9 @@ class WifiAwareSenderService : WifiAwareService() {
             applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
         } else {
             unregisterReceiver(batteryChangeBroadcastReceiver)
-            persistenceController.persistData(measurements.toString())
         }
+
+        persistenceController.persistData(measurements.toString())
 
         sendBroadcast(
             Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", false)

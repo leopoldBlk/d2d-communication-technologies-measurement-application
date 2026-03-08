@@ -20,7 +20,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
-import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPaketRangeTest
+import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPacketRangeTest
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPrimaryPhy
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderSecondaryPhy
 import com.leopoldbialek.measurementapp.Enums.Role
@@ -33,7 +33,10 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 import kotlin.random.Random
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 class BluetoothLeSenderService() : BluetoothLeService() {
     private lateinit var bleAdvertiser: BluetoothLeAdvertiser
@@ -109,6 +112,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     private fun setupAdvertisingData() {
         if (testType == TestType.RANGE) {
 
@@ -135,26 +139,25 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                     BluetoothLeSenderPrimaryPhy.PHY_LE_CODED
                 }
 
+            val transmissionPacketRangeTest: TransmissionPacketRangeTest = TransmissionPacketRangeTest(
+                UUID.randomUUID().toString(),
+                LocationService.currentCoordinates.toString(),
+                timestamp.toString(),
+                "1_PHY: ${primaryPhy}; 2_PHY: ${secondaryPhy}"
+            )
+
             advertisingData = AdvertiseData
                 .Builder()
-                .addServiceUuid(serviceUUID)
-                .setIncludeDeviceName(true)
                 .addServiceData(
                     serviceUUID,
-                    Json.encodeToString(
-                        TransmissionPaketRangeTest(
-                            LocationService.currentCoordinates.toString(),
-                            timestamp.toString(),
-                            "Prim PHY Config: ${primaryPhy}; Sec PHY Config: ${secondaryPhy}"
-                        )
-                    ).encodeToByteArray()
+                    Json.encodeToString(transmissionPacketRangeTest).encodeToByteArray()
                 ).build()
+
+            measurements.add(transmissionPacketRangeTest)
 
         } else {
             advertisingData = AdvertiseData
                 .Builder()
-                .addServiceUuid(serviceUUID)
-                .setIncludeDeviceName(true)
                 .addServiceData(
                     serviceUUID,
                     Random.nextBytes(237)
@@ -212,10 +215,9 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                     val secondaryPhy: BluetoothLeSenderSecondaryPhy =
                         if (advertisingSetParameters.secondaryPhy == BluetoothDevice.PHY_LE_1M) {
                             BluetoothLeSenderSecondaryPhy.PHY_1M
-                        } else if (advertisingSetParameters.secondaryPhy == BluetoothDevice.PHY_LE_2M){
+                        } else if (advertisingSetParameters.secondaryPhy == BluetoothDevice.PHY_LE_2M) {
                             BluetoothLeSenderSecondaryPhy.PHY_2M
-                        }
-                        else {
+                        } else {
                             BluetoothLeSenderSecondaryPhy.PHY_LE_CODED
                         }
 
@@ -284,8 +286,9 @@ class BluetoothLeSenderService() : BluetoothLeService() {
             applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
         } else {
             unregisterReceiver(batteryChangeBroadcastReceiver)
-            persistenceController.persistData(measurements.toString())
         }
+
+        persistenceController.persistData(measurements.toString())
 
         sendBroadcast(
             Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", false)

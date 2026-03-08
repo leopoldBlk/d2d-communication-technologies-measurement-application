@@ -20,7 +20,7 @@ import android.os.BatteryManager
 import android.util.Log
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
 import com.leopoldbialek.measurementapp.DataClasses.RangeTest.MeasurementRangeTest
-import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPaketRangeTest
+import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPacketRangeTest
 import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
 import com.leopoldbialek.measurementapp.Enums.TestType
@@ -30,6 +30,7 @@ import com.leopoldbialek.measurementapp.Utils.PersistenceController
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import kotlin.uuid.ExperimentalUuidApi
 
 class WifiAwareReceiverService : WifiAwareService() {
     private lateinit var callbackThreadLooper: Looper
@@ -49,6 +50,7 @@ class WifiAwareReceiverService : WifiAwareService() {
         Looper.loop()
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     @SuppressLint("MissingPermission", "NewApi")
     private val discoveryThread: Thread = Thread {
         Looper.prepare()
@@ -96,14 +98,15 @@ class WifiAwareReceiverService : WifiAwareService() {
                                 }
 
                                 if (testType == TestType.RANGE) {
-                                    val receivedTransmissionPacket: TransmissionPaketRangeTest =
-                                        Json.decodeFromString<TransmissionPaketRangeTest>(
+                                    val receivedTransmissionPacket: TransmissionPacketRangeTest =
+                                        Json.decodeFromString<TransmissionPacketRangeTest>(
                                             info.serviceSpecificInfo?.decodeToString()
                                                 .toString()
                                         )
 
                                     val measurementRangeTest: MeasurementRangeTest =
                                         MeasurementRangeTest(
+                                            receivedTransmissionPacket.packetUuid,
                                             receivedTransmissionPacket.coordinatesSender,
                                             receivedTransmissionPacket.timestampSending,
                                             receivedTransmissionPacket.additionalInfoSender,

@@ -15,13 +15,11 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.IBinder
-import android.os.ParcelUuid
-import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
 import com.leopoldbialek.measurementapp.DataClasses.RangeTest.MeasurementRangeTest
-import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPaketRangeTest
+import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPacketRangeTest
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeReceiverPhy
 import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
@@ -32,9 +30,7 @@ import com.leopoldbialek.measurementapp.Utils.PersistenceController
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.time.ZoneOffset
-import java.util.UUID
-import kotlin.math.pow
-import kotlin.math.roundToLong
+import kotlin.uuid.ExperimentalUuidApi
 
 class BluetoothLeReceiverService : BluetoothLeService() {
     private lateinit var bleScanner: BluetoothLeScanner
@@ -53,12 +49,13 @@ class BluetoothLeReceiverService : BluetoothLeService() {
         LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Stopped Scanning!")
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     private val bleScanCallback: ScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             super.onScanResult(callbackType, result)
 
             if (result != null) {
-                if (!result.isLegacy && result.scanRecord?.serviceUuids?.contains(serviceUUID) == true) {
+                if (!result.isLegacy && result.scanRecord?.serviceData?.containsKey(serviceUUID) == true) {
 //                    val timestampMillisTransmissionPacketReceived: Long =
 //                        System.currentTimeMillis() - SystemClock.elapsedRealtime() + (result.timestampNanos * 10.0.pow(
 //                            -6
@@ -74,28 +71,23 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                             )
                         }
 
-                        val receivedTransmissionPacket: TransmissionPaketRangeTest =
-                            Json.decodeFromString<TransmissionPaketRangeTest>(
+                        val receivedTransmissionPacket: TransmissionPacketRangeTest =
+                            Json.decodeFromString<TransmissionPacketRangeTest>(
                                 result.scanRecord?.serviceData?.get(serviceUUID)?.decodeToString()
                                     .toString()
                             )
 
                         val measurementRangeTest: MeasurementRangeTest = MeasurementRangeTest(
+                            receivedTransmissionPacket.packetUuid,
                             receivedTransmissionPacket.coordinatesSender,
                             receivedTransmissionPacket.timestampSending,
                             receivedTransmissionPacket.additionalInfoSender,
                             LocationService.currentCoordinates.toString(),
                             timestamp.toString(),
-                            "PHY Config: ${bleReceiverPhy.name}; RSSI: ${result.rssi}"
+                            "PHY: ${bleReceiverPhy.name}; RSSI: ${result.rssi}"
                         )
 
                         measurements.add(measurementRangeTest)
-
-                        LogController.log(
-                            Log.INFO,
-                            "Bluetooth-LE-Receiver",
-                            "Received Data from Device-Name: ${result.scanRecord?.deviceName}"
-                        )
 
                         LogController.log(
                             Log.INFO,
