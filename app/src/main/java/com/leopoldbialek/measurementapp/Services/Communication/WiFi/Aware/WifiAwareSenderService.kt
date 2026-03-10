@@ -20,6 +20,7 @@ import android.os.Looper
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
+import com.leopoldbialek.measurementapp.DataClasses.Coordinates
 import com.leopoldbialek.measurementapp.Services.Location.LocationService
 import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPacketRangeTest
 import com.leopoldbialek.measurementapp.Enums.Role
@@ -40,9 +41,11 @@ import kotlin.uuid.Uuid
 class WifiAwareSenderService : WifiAwareService() {
     private lateinit var publishServiceConfig: PublishConfig
     private lateinit var callbackThreadLooper: Looper
+    private lateinit var currentPublishedCoordinates: Coordinates
 
     private var isPublishing: AtomicBoolean = AtomicBoolean(false)
     private var callbackHandler: Handler? = null
+    private var publishConfigInitialized: Boolean = false
 
     private val callbackThread: Thread = Thread {
         Looper.prepare()
@@ -94,32 +97,40 @@ class WifiAwareSenderService : WifiAwareService() {
     @SuppressLint("MissingPermission")
     fun startPublishing() {
         if (testType == TestType.RANGE) {
-            val timestamp: LocalDateTime = if (trustedTimeClient == null) {
-                LocalDateTime.now()
-            } else {
-                LocalDateTime.ofInstant(
-                    trustedTimeClient!!.computeCurrentInstant(),
-                    ZoneOffset.systemDefault()
+            if (!publishConfigInitialized || currentPublishedCoordinates != LocationService.currentCoordinates){
+                val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                    LocalDateTime.now()
+                } else {
+                    LocalDateTime.ofInstant(
+                        trustedTimeClient!!.computeCurrentInstant(),
+                        ZoneOffset.systemDefault()
+                    )
+                }
+
+                currentPublishedCoordinates = LocationService.currentCoordinates
+
+                val transmissionPacketRangeTest: TransmissionPacketRangeTest = TransmissionPacketRangeTest(
+                    UUID.randomUUID().toString(),
+                    currentPublishedCoordinates.toString(),
+                    timestamp.toString(),
+                    // Length: 28 Chars
+                    "<----PLACEHOLDER-STRING---->"
                 )
+
+                publishServiceConfig =
+                    PublishConfig.Builder()
+                        .setServiceName(serviceUUID.toString())
+                        .setTtlSec(1)
+                        .setServiceSpecificInfo(
+                            Json.encodeToString(transmissionPacketRangeTest).encodeToByteArray()
+                        ).build()
+
+                publishConfigInitialized = true
+
+                measurements.add(Json.encodeToString(transmissionPacketRangeTest))
+
+                LogController.log(Log.DEBUG, "Wifi-Aware-Sender", "Updated Publishing Data!")
             }
-
-            val transmissionPacketRangeTest: TransmissionPacketRangeTest = TransmissionPacketRangeTest(
-                UUID.randomUUID().toString(),
-                LocationService.currentCoordinates.toString(),
-                timestamp.toString(),
-                // Length: 28 Chars
-                "<----PLACEHOLDER-STRING---->"
-            )
-
-            publishServiceConfig =
-                PublishConfig.Builder()
-                    .setServiceName(serviceUUID.toString())
-                    .setTtlSec(1)
-                    .setServiceSpecificInfo(
-                        Json.encodeToString(transmissionPacketRangeTest).encodeToByteArray()
-                    ).build()
-
-            measurements.add(Json.encodeToString(transmissionPacketRangeTest))
 
             if(measurements.size >= 100){
                 persistenceController.persistData(measurements.toString())
@@ -188,7 +199,7 @@ class WifiAwareSenderService : WifiAwareService() {
         val statusSuperOnStartCommand: Int = super.onStartCommand(intent, flags, startId)
 
         persistenceController = PersistenceController(
-            Technology.BLUETOOTH_LE.name,
+            Technology.WIFI_AWARE.name,
             intent!!.getStringExtra("TestType")!!,
             Role.SENDER.name
         )

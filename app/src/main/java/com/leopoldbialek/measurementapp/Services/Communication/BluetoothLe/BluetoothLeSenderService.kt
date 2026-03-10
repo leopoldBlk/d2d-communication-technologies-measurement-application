@@ -20,6 +20,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
+import com.leopoldbialek.measurementapp.DataClasses.Coordinates
 import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPacketRangeTest
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPrimaryPhy
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderSecondaryPhy
@@ -43,19 +44,25 @@ class BluetoothLeSenderService() : BluetoothLeService() {
     private lateinit var advertisingData: AdvertiseData
     private lateinit var advertisingSetParameters: AdvertisingSetParameters
     private lateinit var currentAdvertisingSet: AdvertisingSet
+    private lateinit var currentAdvertisedCoordinates: Coordinates
 
     @SuppressLint("MissingPermission")
     private val advertiseDataUpdater: Thread = Thread {
         while (!Thread.currentThread().isInterrupted) {
-            setupAdvertisingData()
+            if(currentAdvertisedCoordinates != LocationService.currentCoordinates){
+                setupAdvertisingData()
 
-            currentAdvertisingSet.setAdvertisingData(advertisingData)
+                currentAdvertisingSet.setAdvertisingData(advertisingData)
 
-            sendBroadcast(
-                Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", true)
-            )
+                LogController.log(Log.INFO, "Bluetooth-LE-Sender", "Updated Advertising Data!")
 
-            LogController.log(Log.INFO, "Bluetooth-LE-Sender", "Updated Advertising Data!")
+            }
+
+            try {
+                Thread.sleep(1000)
+            }catch (e: InterruptedException ){
+                Thread.currentThread().interrupt()
+            }
         }
     }
 
@@ -88,6 +95,10 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                 currentAdvertisingSet = advertisingSet
 
                 advertiseDataUpdater.start()
+
+                sendBroadcast(
+                    Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", true)
+                )
             }
 
             if (status == ADVERTISE_SUCCESS) {
@@ -139,9 +150,11 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                     BluetoothLeSenderPrimaryPhy.PHY_LE_CODED
                 }
 
+            currentAdvertisedCoordinates = LocationService.currentCoordinates
+
             val transmissionPacketRangeTest: TransmissionPacketRangeTest = TransmissionPacketRangeTest(
                 UUID.randomUUID().toString(),
-                LocationService.currentCoordinates.toString(),
+                currentAdvertisedCoordinates.toString(),
                 timestamp.toString(),
                 "1_PHY: ${primaryPhy}; 2_PHY: ${secondaryPhy}"
             )
