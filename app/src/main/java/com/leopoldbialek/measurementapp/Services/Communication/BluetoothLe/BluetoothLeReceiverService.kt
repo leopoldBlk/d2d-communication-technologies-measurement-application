@@ -87,10 +87,10 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                         val measurementRangeTest: MeasurementRangeTest = MeasurementRangeTest(
                             receivedTransmissionPacket.packetUuid,
                             receivedTransmissionPacket.coordinatesSender,
-                            receivedTransmissionPacket.timestampSending,
+                            //receivedTransmissionPacket.timestampSending,
                             receivedTransmissionPacket.additionalInfoSender,
                             LocationService.currentCoordinates.toString(),
-                            timestamp.toString(),
+                            //timestamp.toString(),
                             "PHY: ${bleReceiverPhy.name}; RSSI: ${result.rssi}"
                         )
 

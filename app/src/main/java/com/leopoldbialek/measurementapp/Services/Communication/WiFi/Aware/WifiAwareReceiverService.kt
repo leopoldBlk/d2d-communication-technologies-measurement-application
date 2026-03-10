@@ -89,14 +89,14 @@ class WifiAwareReceiverService : WifiAwareService() {
                             override fun onServiceDiscovered(info: ServiceDiscoveryInfo) {
                                 super.onServiceDiscovered(info)
 
-                                val timestamp: LocalDateTime = if (trustedTimeClient == null) {
-                                    LocalDateTime.now()
-                                } else {
-                                    LocalDateTime.ofInstant(
-                                        trustedTimeClient!!.computeCurrentInstant(),
-                                        ZoneOffset.systemDefault()
-                                    )
-                                }
+//                                val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+//                                    LocalDateTime.now()
+//                                } else {
+//                                    LocalDateTime.ofInstant(
+//                                        trustedTimeClient!!.computeCurrentInstant(),
+//                                        ZoneOffset.systemDefault()
+//                                    )
+//                                }
 
                                 if (testType == TestType.RANGE) {
                                     val receivedTransmissionPacket: TransmissionPacketRangeTest =
@@ -109,10 +109,10 @@ class WifiAwareReceiverService : WifiAwareService() {
                                         MeasurementRangeTest(
                                             receivedTransmissionPacket.packetUuid,
                                             receivedTransmissionPacket.coordinatesSender,
-                                            receivedTransmissionPacket.timestampSending,
+                                            //receivedTransmissionPacket.timestampSending,
                                             receivedTransmissionPacket.additionalInfoSender,
                                             LocationService.currentCoordinates.toString(),
-                                            timestamp.toString()
+                                            //timestamp.toString()
                                         )
 
                                     measurements.add(Json.encodeToString(measurementRangeTest))

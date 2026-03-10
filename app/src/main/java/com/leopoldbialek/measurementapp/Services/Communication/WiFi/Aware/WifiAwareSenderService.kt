@@ -98,21 +98,21 @@ class WifiAwareSenderService : WifiAwareService() {
     fun startPublishing() {
         if (testType == TestType.RANGE) {
             if (!publishConfigInitialized || currentPublishedCoordinates != LocationService.currentCoordinates){
-                val timestamp: LocalDateTime = if (trustedTimeClient == null) {
-                    LocalDateTime.now()
-                } else {
-                    LocalDateTime.ofInstant(
-                        trustedTimeClient!!.computeCurrentInstant(),
-                        ZoneOffset.systemDefault()
-                    )
-                }
+//                val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+//                    LocalDateTime.now()
+//                } else {
+//                    LocalDateTime.ofInstant(
+//                        trustedTimeClient!!.computeCurrentInstant(),
+//                        ZoneOffset.systemDefault()
+//                    )
+//                }
 
                 currentPublishedCoordinates = LocationService.currentCoordinates
 
                 val transmissionPacketRangeTest: TransmissionPacketRangeTest = TransmissionPacketRangeTest(
                     UUID.randomUUID().toString(),
                     currentPublishedCoordinates.toString(),
-                    timestamp.toString(),
+                    //timestamp.toString(),
                     // Length: 28 Chars
                     "<----PLACEHOLDER-STRING---->"
                 )

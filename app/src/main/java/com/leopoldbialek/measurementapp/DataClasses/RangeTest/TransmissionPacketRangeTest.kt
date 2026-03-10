@@ -8,7 +8,7 @@ import kotlin.uuid.Uuid
 data class TransmissionPacketRangeTest @OptIn(ExperimentalUuidApi::class) constructor(
     val packetUuid: String,
     val coordinatesSender: String,
-    val timestampSending: String,
+    //val timestampSending: String,
     val additionalInfoSender: String = ""
 ) {
 }
