@@ -98,6 +98,9 @@ class WifiAwareSenderService : WifiAwareService() {
     fun startPublishing() {
         if (testType == TestType.RANGE) {
             if (!publishConfigInitialized || currentPublishedCoordinates != LocationService.currentCoordinates){
+
+                currentPublishedCoordinates = LocationService.currentCoordinates
+
                 val timestamp: LocalDateTime = if (trustedTimeClient == null) {
                     LocalDateTime.now()
                 } else {
@@ -106,8 +109,6 @@ class WifiAwareSenderService : WifiAwareService() {
                         ZoneOffset.systemDefault()
                     )
                 }
-
-                currentPublishedCoordinates = LocationService.currentCoordinates
 
                 val transmissionPacketRangeTest: TransmissionPacketRangeTest = TransmissionPacketRangeTest(
                     UUID.randomUUID().toString(),

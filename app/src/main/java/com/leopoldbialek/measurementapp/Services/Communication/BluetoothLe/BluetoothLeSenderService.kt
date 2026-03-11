@@ -9,6 +9,7 @@ import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertisingSet
 import android.bluetooth.le.AdvertisingSetCallback
 import android.bluetooth.le.AdvertisingSetParameters
+import android.bluetooth.le.AdvertisingSetParameters.TX_POWER_HIGH
 import android.bluetooth.le.AdvertisingSetParameters.TX_POWER_MEDIUM
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.content.Intent
@@ -62,6 +63,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
 
             }
 
+            // Adapt to restriction of Wifi Aware where the Pub-Data is only updated every second!
             try {
                 Thread.sleep(1000)
             }catch (e: InterruptedException ){
@@ -98,10 +100,16 @@ class BluetoothLeSenderService() : BluetoothLeService() {
             if (advertisingSet != null) {
                 currentAdvertisingSet = advertisingSet
 
-                advertiseDataUpdater.start()
+                if(testType == TestType.RANGE){
+                    advertiseDataUpdater.start()
+                }
             }
 
             if (status == ADVERTISE_SUCCESS) {
+                sendBroadcast(
+                    Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", true)
+                )
+
                 LogController.log(
                     Log.INFO,
                     "Bluetooth-LE-Sender",
@@ -119,6 +127,10 @@ class BluetoothLeSenderService() : BluetoothLeService() {
         override fun onAdvertisingSetStopped(advertisingSet: AdvertisingSet?) {
             super.onAdvertisingSetStopped(advertisingSet)
 
+            sendBroadcast(
+                Intent().setAction("MEASUREMENT_BROADCAST").putExtra("activeDataTransmission", false)
+            )
+
             LogController.log(Log.INFO, "Bluetooth-LE-Sender", "Advertising Stopped!")
         }
     }
@@ -126,15 +138,6 @@ class BluetoothLeSenderService() : BluetoothLeService() {
     @OptIn(ExperimentalUuidApi::class)
     private fun setupAdvertisingData() {
         if (testType == TestType.RANGE) {
-
-            val timestamp: LocalDateTime = if (trustedTimeClient == null) {
-                LocalDateTime.now()
-            } else {
-                LocalDateTime.ofInstant(
-                    trustedTimeClient!!.computeCurrentInstant(),
-                    ZoneOffset.systemDefault()
-                )
-            }
 
             val primaryPhy: BluetoothLeSenderPrimaryPhy =
                 if (advertisingSetParameters.primaryPhy == BluetoothDevice.PHY_LE_1M) {
@@ -151,6 +154,15 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                 }
 
             currentAdvertisedCoordinates = LocationService.currentCoordinates
+
+            val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                LocalDateTime.now()
+            } else {
+                LocalDateTime.ofInstant(
+                    trustedTimeClient!!.computeCurrentInstant(),
+                    ZoneOffset.systemDefault()
+                )
+            }
 
             val transmissionPacketRangeTest: TransmissionPacketRangeTest = TransmissionPacketRangeTest(
                 UUID.randomUUID().toString(),
@@ -286,7 +298,8 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                 .setPrimaryPhy(primaryPhy)
                 .setSecondaryPhy(secondaryPhy)
                 .setInterval(AdvertisingSetParameters.INTERVAL_HIGH)
-                .setTxPowerLevel(TX_POWER_MEDIUM)
+                //.setTxPowerLevel(TX_POWER_MEDIUM)
+                .setTxPowerLevel(TX_POWER_HIGH)
                 .build()
 
         setupAdvertisingData()
@@ -302,7 +315,10 @@ class BluetoothLeSenderService() : BluetoothLeService() {
     override fun onDestroy() {
         super.onDestroy()
 
-        advertiseDataUpdater.interrupt()
+        if(testType == TestType.RANGE){
+            advertiseDataUpdater.interrupt()
+        }
+
         advertisingThread.interrupt()
 
         if (testType == TestType.RANGE) {

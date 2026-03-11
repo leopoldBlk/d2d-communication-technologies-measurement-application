@@ -86,7 +86,7 @@ class MeasurementViewModel : ViewModel() {
         while (!Thread.currentThread().isInterrupted){
             Thread.sleep(waitDurationForCheckMillis)
 
-            if (waitDurationForCheckMillis < ChronoUnit.MILLIS.between(activeDataTransmissionLastSet, LocalDateTime.now())){
+            if (!(selectedRole.value == Role.SENDER && selectedTestType.value == TestType.BATTERY) && waitDurationForCheckMillis < ChronoUnit.MILLIS.between(activeDataTransmissionLastSet, LocalDateTime.now())){
                 activeDataTransmission.value = false
             }
         }
