@@ -17,6 +17,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
@@ -34,6 +35,11 @@ import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadPoolExecutor
+import kotlin.math.pow
+import kotlin.math.roundToLong
 import kotlin.uuid.ExperimentalUuidApi
 
 class BluetoothLeReceiverService : BluetoothLeService() {
@@ -55,81 +61,85 @@ class BluetoothLeReceiverService : BluetoothLeService() {
         LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Stopped Scanning!")
     }
 
+    var threadPool: ExecutorService = Executors.newCachedThreadPool()
+
     @OptIn(ExperimentalUuidApi::class)
     @SuppressLint("MissingPermission")
     private val bleScanCallback: ScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
-            super.onScanResult(callbackType, result)
+            threadPool.submit {
+                super.onScanResult(callbackType, result)
 
-            if (result != null) {
-                if (!result.isLegacy && result.scanRecord?.serviceData?.containsKey(serviceUUID) == true) {
-//                    val timestampMillisTransmissionPacketReceived: Long =
-//                        System.currentTimeMillis() - SystemClock.elapsedRealtime() + (result.timestampNanos * 10.0.pow(
-//                            -6
-//                        )).roundToLong()
+                if (result != null) {
+                    if (!result.isLegacy && result.scanRecord?.serviceData?.containsKey(serviceUUID) == true) {
+                    val timestampMillisTransmissionPacketReceived: Long =
+                        System.currentTimeMillis() - SystemClock.elapsedRealtime() + (result.timestampNanos * 10.0.pow(
+                            -6
+                        )).roundToLong()
 
-                    if (testType == TestType.RANGE) {
-                        val timestamp: LocalDateTime = if (trustedTimeClient == null) {
-                            LocalDateTime.now()
-                        } else {
-                            LocalDateTime.ofInstant(
-                                trustedTimeClient!!.computeCurrentInstant(),
-                                ZoneOffset.systemDefault()
-                            )
-                        }
-
-                        val receivedTransmissionPacket: TransmissionPacketRangeTest =
-                            Json.decodeFromString<TransmissionPacketRangeTest>(
-                                result.scanRecord?.serviceData?.get(serviceUUID)?.decodeToString()
-                                    .toString()
-                            )
-
-                        val measurementRangeTest: MeasurementRangeTest = MeasurementRangeTest(
-                            receivedTransmissionPacket.packetUuid,
-                            receivedTransmissionPacket.coordinatesSender,
-                            //receivedTransmissionPacket.timestampSending,
-                            receivedTransmissionPacket.additionalInfoSender,
-                            LocationService.currentCoordinates.toString(),
-                            //timestamp.toString(),
-                            "PHY: ${bleReceiverPhy.name}; RSSI: ${result.rssi}"
-                        )
-
-                        measurements.add(Json.encodeToString(measurementRangeTest))
-
-                        LogController.log(
-                            Log.INFO,
-                            "Bluetooth-LE-Receiver",
-                            "New Measurement: ${measurements.last()}"
-                        )
-
-                        if(measurements.size >= 100){
-                            persistenceController.persistData(measurements.toString())
-                            measurements.clear()
-                        }
-
-                        if (ChronoUnit.MINUTES.between(scanStartTimestamp, timestamp) >= 3){
-                            scanningThread.interrupt()
-
-                            scanningThread = Thread {
-                                bleScanner.startScan(null, scanSettings, bleScanCallback)
-                                scanStartTimestamp = LocalDateTime.now()
-                                LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Started Scanning!")
-
-                                while (!Thread.currentThread().isInterrupted) {
-                                }
-
-                                bleScanner.stopScan(bleScanCallback)
-                                LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Stopped Scanning!")
+                        if (testType == TestType.RANGE) {
+                            val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                                LocalDateTime.now()
+                            } else {
+                                LocalDateTime.ofInstant(
+                                    trustedTimeClient!!.computeCurrentInstant(),
+                                    ZoneOffset.systemDefault()
+                                )
                             }
 
-                            scanningThread.start()
-                        }
-                    }
+                            val receivedTransmissionPacket: TransmissionPacketRangeTest =
+                                Json.decodeFromString<TransmissionPacketRangeTest>(
+                                    result.scanRecord?.serviceData?.get(serviceUUID)?.decodeToString()
+                                        .toString()
+                                )
 
-                    sendBroadcast(
-                        Intent().setAction("MEASUREMENT_BROADCAST")
-                            .putExtra("activeDataTransmission", true)
-                    )
+                            val measurementRangeTest: MeasurementRangeTest = MeasurementRangeTest(
+                                receivedTransmissionPacket.packetUuid,
+                                receivedTransmissionPacket.coordinatesSender,
+                                receivedTransmissionPacket.timestampSending,
+                                receivedTransmissionPacket.additionalInfoSender,
+                                LocationService.currentCoordinates.toString(),
+                                timestamp.toString(),
+                                "PHY: ${bleReceiverPhy.name}; RSSI: ${result.rssi}"
+                            )
+
+                            measurements.add(Json.encodeToString(measurementRangeTest))
+
+                            LogController.log(
+                                Log.INFO,
+                                "Bluetooth-LE-Receiver",
+                                "New Measurement: ${measurements.last()}"
+                            )
+
+                            if(measurements.size >= 100){
+                                persistenceController.persistData(measurements.toString())
+                                measurements.clear()
+                            }
+
+                            if (ChronoUnit.MINUTES.between(scanStartTimestamp, timestamp) >= 3){
+                                scanningThread.interrupt()
+
+                                scanningThread = Thread {
+                                    bleScanner.startScan(null, scanSettings, bleScanCallback)
+                                    scanStartTimestamp = LocalDateTime.now()
+                                    LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Started Scanning!")
+
+                                    while (!Thread.currentThread().isInterrupted) {
+                                    }
+
+                                    bleScanner.stopScan(bleScanCallback)
+                                    LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Stopped Scanning!")
+                                }
+
+                                scanningThread.start()
+                            }
+                        }
+
+                        sendBroadcast(
+                            Intent().setAction("MEASUREMENT_BROADCAST")
+                                .putExtra("activeDataTransmission", true)
+                        )
+                    }
                 }
             }
         }

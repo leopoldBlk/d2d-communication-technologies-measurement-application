@@ -8,10 +8,10 @@ import kotlin.uuid.Uuid
 data class MeasurementRangeTest constructor(
     val paketUuid: String,
     val coordinatesSender: String,
-    //val timestampSending: String,
+    val timestampSending: String,
     val additionalInfoSender: String,
     val coordinatesReceiver: String,
-    //val timestampReceiving: String,
+    val timestampReceiving: String,
     val additionalInfoReceiver: String = ""
 ) {
 }

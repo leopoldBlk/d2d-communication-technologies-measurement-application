@@ -127,14 +127,14 @@ class BluetoothLeSenderService() : BluetoothLeService() {
     private fun setupAdvertisingData() {
         if (testType == TestType.RANGE) {
 
-//            val timestamp: LocalDateTime = if (trustedTimeClient == null) {
-//                LocalDateTime.now()
-//            } else {
-//                LocalDateTime.ofInstant(
-//                    trustedTimeClient!!.computeCurrentInstant(),
-//                    ZoneOffset.systemDefault()
-//                )
-//            }
+            val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                LocalDateTime.now()
+            } else {
+                LocalDateTime.ofInstant(
+                    trustedTimeClient!!.computeCurrentInstant(),
+                    ZoneOffset.systemDefault()
+                )
+            }
 
             val primaryPhy: BluetoothLeSenderPrimaryPhy =
                 if (advertisingSetParameters.primaryPhy == BluetoothDevice.PHY_LE_1M) {
@@ -155,7 +155,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
             val transmissionPacketRangeTest: TransmissionPacketRangeTest = TransmissionPacketRangeTest(
                 UUID.randomUUID().toString(),
                 currentAdvertisedCoordinates.toString(),
-                //timestamp.toString(),
+                timestamp.toString(),
                 "1_PHY: ${primaryPhy}; 2_PHY: ${secondaryPhy}"
             )
 
