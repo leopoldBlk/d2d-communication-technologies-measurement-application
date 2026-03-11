@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /> <!-- Source: https://developer.android.com/develop/connectivity/wifi/wifi-aware -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -25,55 +26,39 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MeasurementApp">
         <service
-            android:name=".CommunicationServices.WiFi.Direct.WifiDirectReceiverService"
+            android:name=".Services.Communication.WiFi.Direct.WifiDirectReceiverService"
             android:enabled="true"
             android:exported="true"></service>
         <service
-            android:name=".CommunicationServices.WiFi.Direct.WifiDirectSenderService"
+            android:name=".Services.Communication.WiFi.Direct.WifiDirectSenderService"
             android:enabled="true"
             android:exported="true"></service>
         <service
-            android:name=".CommunicationServices.WiFi.Aware.WifiAwareService"
+            android:name=".Services.Communication.WiFi.Aware.WifiAwareService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.WiFi.Aware.WifiAwareReceiverService"
+            android:name=".Services.Communication.WiFi.Aware.WifiAwareReceiverService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.WiFi.Aware.WifiAwareSenderService"
+            android:name=".Services.Communication.WiFi.Aware.WifiAwareSenderService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".Persistence.PersistenceService"
+            android:name=".Services.Location.LocationService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".Location.LocationService"
+            android:name=".Services.Communication.BluetoothLe.BluetoothLeReceiverService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.BluetoothLe.BluetoothLeReceiver"
+            android:name=".Services.Communication.BluetoothLe.BluetoothLeSenderService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".CommunicationServices.BluetoothLe.BluetoothLeSender"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".CommunicationServices.BluetoothLe.BluetoothLeService"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".CommunicationServices.BluetoothLe.BatteryTest.BluetoothReceiverServiceBatteryTest"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".CommunicationServices.BluetoothLe.BatteryTest.BluetoothSenderLeServiceBatteryTest"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".CommunicationServices.BluetoothLe.BatteryTest.BluetoothServiceBatteryTest"
+            android:name=".Services.Communication.BluetoothLe.BluetoothLeService"
             android:enabled="true"
             android:exported="true" />
 
@@ -87,6 +72,9 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+
+                    <action android:name="MEASUREMENT_BROADCAST" />
+
             </intent-filter>
         </activity>
     </application>
