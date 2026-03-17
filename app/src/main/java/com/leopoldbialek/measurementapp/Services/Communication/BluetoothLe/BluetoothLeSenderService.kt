@@ -9,7 +9,6 @@ import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertisingSet
 import android.bluetooth.le.AdvertisingSetCallback
 import android.bluetooth.le.AdvertisingSetParameters
-import android.bluetooth.le.AdvertisingSetParameters.TX_POWER_HIGH
 import android.bluetooth.le.AdvertisingSetParameters.TX_POWER_MEDIUM
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.content.Intent
@@ -22,7 +21,7 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
 import com.leopoldbialek.measurementapp.DataClasses.Coordinates
-import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPacketRangeTest
+import com.leopoldbialek.measurementapp.DataClasses.RangeTest.MeasurementRangeTestSender
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderPrimaryPhy
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeSenderSecondaryPhy
 import com.leopoldbialek.measurementapp.Enums.Role
@@ -37,8 +36,6 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.random.Random
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 class BluetoothLeSenderService() : BluetoothLeService() {
     private lateinit var bleAdvertiser: BluetoothLeAdvertiser
@@ -46,6 +43,8 @@ class BluetoothLeSenderService() : BluetoothLeService() {
     private lateinit var advertisingSetParameters: AdvertisingSetParameters
     private lateinit var currentAdvertisingSet: AdvertisingSet
     private lateinit var currentAdvertisedCoordinates: Coordinates
+    private lateinit var primaryPhyEnum: BluetoothLeSenderPrimaryPhy
+    private lateinit var secondaryPhyEnum: BluetoothLeSenderSecondaryPhy
 
     @SuppressLint("MissingPermission")
     private val advertiseDataUpdater: Thread = Thread {
@@ -135,23 +134,17 @@ class BluetoothLeSenderService() : BluetoothLeService() {
         }
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     private fun setupAdvertisingData() {
         if (testType == TestType.RANGE) {
 
-            val primaryPhy: BluetoothLeSenderPrimaryPhy =
-                if (advertisingSetParameters.primaryPhy == BluetoothDevice.PHY_LE_1M) {
-                    BluetoothLeSenderPrimaryPhy.PHY_1M
-                } else {
-                    BluetoothLeSenderPrimaryPhy.PHY_LE_CODED
-                }
+            val packetUuid: UUID = UUID.randomUUID()
 
-            val secondaryPhy: BluetoothLeSenderPrimaryPhy =
-                if (advertisingSetParameters.secondaryPhy == BluetoothDevice.PHY_LE_1M) {
-                    BluetoothLeSenderPrimaryPhy.PHY_1M
-                } else {
-                    BluetoothLeSenderPrimaryPhy.PHY_LE_CODED
-                }
+            advertisingData = AdvertiseData
+                .Builder()
+                .addServiceData(
+                    serviceUUID,
+                    packetUuid.toString().encodeToByteArray()
+                ).build()
 
             currentAdvertisedCoordinates = LocationService.currentCoordinates
 
@@ -164,21 +157,16 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                 )
             }
 
-            val transmissionPacketRangeTest: TransmissionPacketRangeTest = TransmissionPacketRangeTest(
-                UUID.randomUUID().toString(),
-                currentAdvertisedCoordinates.toString(),
+            val measurementRangeTestSender: MeasurementRangeTestSender =
+                MeasurementRangeTestSender(
+                packetUuid.toString(),
+                currentAdvertisedCoordinates.latitude.toString(),
+                    currentAdvertisedCoordinates.longitude.toString(),
                 timestamp.toString(),
-                "1_PHY: ${primaryPhy}; 2_PHY: ${secondaryPhy}"
+                "1_PHY: ${primaryPhyEnum}; 2_PHY: ${secondaryPhyEnum}"
             )
 
-            advertisingData = AdvertiseData
-                .Builder()
-                .addServiceData(
-                    serviceUUID,
-                    Json.encodeToString(transmissionPacketRangeTest).encodeToByteArray()
-                ).build()
-
-            measurements.add(Json.encodeToString(transmissionPacketRangeTest))
+            measurements.add(Json.encodeToString(measurementRangeTestSender))
 
             if(measurements.size >= 100){
                 persistenceController.persistData(measurements.toString())
@@ -277,17 +265,22 @@ class BluetoothLeSenderService() : BluetoothLeService() {
 
         val primaryPhy: Int =
             if (intent?.getStringExtra("PrimarySenderPhy") == BluetoothLeSenderPrimaryPhy.PHY_1M.name) {
+                primaryPhyEnum = BluetoothLeSenderPrimaryPhy.PHY_1M
                 BluetoothDevice.PHY_LE_1M
             } else {
+                primaryPhyEnum = BluetoothLeSenderPrimaryPhy.PHY_LE_CODED
                 BluetoothDevice.PHY_LE_CODED
             }
 
         val secondaryPhy: Int =
             if (intent?.getStringExtra("SecondarySenderPhy") == BluetoothLeSenderSecondaryPhy.PHY_1M.name) {
+                secondaryPhyEnum = BluetoothLeSenderSecondaryPhy.PHY_1M
                 BluetoothDevice.PHY_LE_1M
             } else if (intent?.getStringExtra("SecondarySenderPhy") == BluetoothLeSenderSecondaryPhy.PHY_2M.name) {
+                secondaryPhyEnum = BluetoothLeSenderSecondaryPhy.PHY_2M
                 BluetoothDevice.PHY_LE_2M
             } else {
+                secondaryPhyEnum = BluetoothLeSenderSecondaryPhy.PHY_LE_CODED
                 BluetoothDevice.PHY_LE_CODED
             }
 
@@ -298,8 +291,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                 .setPrimaryPhy(primaryPhy)
                 .setSecondaryPhy(secondaryPhy)
                 .setInterval(AdvertisingSetParameters.INTERVAL_HIGH)
-                //.setTxPowerLevel(TX_POWER_MEDIUM)
-                .setTxPowerLevel(TX_POWER_HIGH)
+                .setTxPowerLevel(TX_POWER_MEDIUM)
                 .build()
 
         setupAdvertisingData()

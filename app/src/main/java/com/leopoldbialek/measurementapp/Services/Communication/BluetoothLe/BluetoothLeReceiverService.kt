@@ -5,24 +5,20 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.bluetooth.le.ScanSettings
-import android.bluetooth.le.ScanSettings.CALLBACK_TYPE_ALL_MATCHES
 import android.bluetooth.le.ScanSettings.PHY_LE_ALL_SUPPORTED
 import android.bluetooth.le.ScanSettings.SCAN_MODE_LOW_LATENCY
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.IBinder
-import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
-import com.leopoldbialek.measurementapp.DataClasses.RangeTest.MeasurementRangeTest
-import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPacketRangeTest
+import com.leopoldbialek.measurementapp.DataClasses.RangeTest.MeasurementRangeTestReceiver
 import com.leopoldbialek.measurementapp.Enums.BluetoothLeReceiverPhy
 import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
@@ -37,10 +33,6 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.concurrent.ThreadPoolExecutor
-import kotlin.math.pow
-import kotlin.math.roundToLong
-import kotlin.uuid.ExperimentalUuidApi
 
 class BluetoothLeReceiverService : BluetoothLeService() {
     private lateinit var bleScanner: BluetoothLeScanner
@@ -72,7 +64,6 @@ class BluetoothLeReceiverService : BluetoothLeService() {
         LogController.log(Log.INFO, "Bluetooth-LE-Receiver", "Stopped Scanning!")
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     @SuppressLint("MissingPermission")
     private val bleScanCallback: ScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
@@ -92,24 +83,23 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                                 )
                             }
 
-                            val receivedTransmissionPacket: TransmissionPacketRangeTest =
-                                Json.decodeFromString<TransmissionPacketRangeTest>(
+                            val receivedPacketUuid: String =
+                                Json.decodeFromString<String>(
                                     result.scanRecord?.serviceData?.get(serviceUUID)
                                         ?.decodeToString()
                                         .toString()
                                 )
 
-                            val measurementRangeTest: MeasurementRangeTest = MeasurementRangeTest(
-                                receivedTransmissionPacket.packetUuid,
-                                receivedTransmissionPacket.coordinatesSender,
-                                receivedTransmissionPacket.timestampSending,
-                                receivedTransmissionPacket.additionalInfoSender,
-                                LocationService.currentCoordinates.toString(),
-                                timestamp.toString(),
-                                "PHY: ${bleReceiverPhy.name}; RSSI: ${result.rssi}"
-                            )
+                            val measurementRangeTestReceiver: MeasurementRangeTestReceiver =
+                                MeasurementRangeTestReceiver(
+                                    receivedPacketUuid,
+                                    LocationService.currentCoordinates.latitude.toString(),
+                                    LocationService.currentCoordinates.longitude.toString(),
+                                    timestamp.toString(),
+                                    "PHY: ${bleReceiverPhy.name}; RSSI: ${result.rssi}"
+                                )
 
-                            measurements.add(Json.encodeToString(measurementRangeTest))
+                            measurements.add(Json.encodeToString(measurementRangeTestReceiver))
 
                             if (measurements.size >= 100) {
                                 persistenceController.persistData(measurements.toString())
