@@ -84,11 +84,9 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                             }
 
                             val receivedPacketUuid: String =
-                                Json.decodeFromString<String>(
-                                    result.scanRecord?.serviceData?.get(serviceUUID)
-                                        ?.decodeToString()
-                                        .toString()
-                                )
+                                result.scanRecord?.serviceData?.get(serviceUUID)
+                                    ?.decodeToString()
+                                    .toString()
 
                             val measurementRangeTestReceiver: MeasurementRangeTestReceiver =
                                 MeasurementRangeTestReceiver(

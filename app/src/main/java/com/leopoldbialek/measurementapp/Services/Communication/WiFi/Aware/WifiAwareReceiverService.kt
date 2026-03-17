@@ -97,10 +97,7 @@ class WifiAwareReceiverService : WifiAwareService() {
                                     }
 
                                     val receivedPacketUuid: String =
-                                        Json.decodeFromString<String>(
-                                            info.serviceSpecificInfo?.decodeToString()
-                                                .toString()
-                                        )
+                                        info.serviceSpecificInfo?.decodeToString().toString()
 
                                     val measurementRangeTestReceiver: MeasurementRangeTestReceiver =
                                         MeasurementRangeTestReceiver(
