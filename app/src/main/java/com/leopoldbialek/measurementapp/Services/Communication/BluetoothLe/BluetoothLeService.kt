@@ -25,7 +25,7 @@ abstract class BluetoothLeService() : Service() {
     protected lateinit var persistenceController: PersistenceController
 
     protected val serviceUUID: ParcelUuid =
-        ParcelUuid(UUID.fromString("361f2683-ebbe-423c-bf78-e3e5efbf86f1"))
+        ParcelUuid(UUID.fromString("00000000-0000-1000-8000-00805f9b34fb"))
     protected val measurements: MutableList<Any> =
         mutableListOf<Any>()
     protected var trustedTimeClient: TrustedTimeClient? = null

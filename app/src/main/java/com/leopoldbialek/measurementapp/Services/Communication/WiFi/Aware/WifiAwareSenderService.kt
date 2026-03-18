@@ -48,7 +48,7 @@ class WifiAwareSenderService : WifiAwareService() {
         .setServiceName(serviceUUID.toString())
         .setTtlSec(1)
         .setServiceSpecificInfo(
-            Random.nextBytes(237)
+            Random.nextBytes(251)
         ).build()
 
     private val callbackThread: Thread = Thread {

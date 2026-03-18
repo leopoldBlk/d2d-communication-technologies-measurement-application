@@ -173,7 +173,7 @@ class BluetoothLeSenderService() : BluetoothLeService() {
                 .Builder()
                 .addServiceData(
                     serviceUUID,
-                    Random.nextBytes(237)
+                    Random.nextBytes(251)
                 ).build()
         }
     }
