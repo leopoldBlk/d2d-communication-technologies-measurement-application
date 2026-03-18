@@ -44,6 +44,12 @@ class WifiAwareSenderService : WifiAwareService() {
     private var isPublishing: AtomicBoolean = AtomicBoolean(false)
     private var callbackHandler: Handler? = null
     private var publishConfigInitialized: Boolean = false
+    private val batteryPublishServiceConfig: PublishConfig = PublishConfig.Builder()
+        .setServiceName(serviceUUID.toString())
+        .setTtlSec(1)
+        .setServiceSpecificInfo(
+            Random.nextBytes(237)
+        ).build()
 
     private val callbackThread: Thread = Thread {
         Looper.prepare()
@@ -94,7 +100,7 @@ class WifiAwareSenderService : WifiAwareService() {
     @SuppressLint("MissingPermission")
     fun startPublishing() {
         if (testType == TestType.RANGE) {
-            if (!publishConfigInitialized || currentPublishedCoordinates != LocationService.currentCoordinates){
+            if (!publishConfigInitialized || currentPublishedCoordinates != LocationService.currentCoordinates) {
 
                 val packetUuid: UUID = UUID.randomUUID()
 
@@ -119,31 +125,26 @@ class WifiAwareSenderService : WifiAwareService() {
 
                 publishConfigInitialized = true
 
-                val measurementRangeTestSender: MeasurementRangeTestSender = MeasurementRangeTestSender(
-                    packetUuid.toString(),
-                    currentPublishedCoordinates.latitude.toString(),
-                    currentPublishedCoordinates.longitude.toString(),
-                    timestamp.toString()
-                )
+                val measurementRangeTestSender: MeasurementRangeTestSender =
+                    MeasurementRangeTestSender(
+                        packetUuid.toString(),
+                        currentPublishedCoordinates.latitude.toString(),
+                        currentPublishedCoordinates.longitude.toString(),
+                        timestamp.toString()
+                    )
 
                 measurements.add(Json.encodeToString(measurementRangeTestSender))
 
                 LogController.log(Log.DEBUG, "Wifi-Aware-Sender", "Updated Publishing Data!")
             }
 
-            if(measurements.size >= 100){
+            if (measurements.size >= 100) {
                 persistenceController.persistData(measurements.toString())
                 measurements.clear()
             }
 
         } else {
-            publishServiceConfig =
-                PublishConfig.Builder()
-                    .setServiceName(serviceUUID.toString())
-                    .setTtlSec(1)
-                    .setServiceSpecificInfo(
-                        Random.nextBytes(237)
-                    ).build()
+            publishServiceConfig = batteryPublishServiceConfig
         }
 
         wifiAwareSession.publish(
@@ -232,7 +233,7 @@ class WifiAwareSenderService : WifiAwareService() {
 
                     measurements.add(Json.encodeToString(measurementBatteryTest))
 
-                    if(measurements.size >= 100){
+                    if (measurements.size >= 100) {
                         persistenceController.persistData(measurements.toString())
                         measurements.clear()
                     }

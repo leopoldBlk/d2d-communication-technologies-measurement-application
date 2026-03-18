@@ -212,7 +212,7 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                     val measurementBatteryTest: MeasurementBatteryTest = MeasurementBatteryTest(
                         intent!!.getIntExtra(BatteryManager.EXTRA_LEVEL, 101).toString(),
                         timestamp.toString(),
-                        "PHY Config: ${bleReceiverPhy.name}"
+                        "PHY: ${bleReceiverPhy.name}"
                     )
 
                     measurements.add(Json.encodeToString(measurementBatteryTest))
@@ -247,6 +247,7 @@ class BluetoothLeReceiverService : BluetoothLeService() {
         super.onDestroy()
 
         scanningThread.interrupt()
+        threadPool.shutdown()
 
         if (testType == TestType.RANGE) {
             applicationContext.stopService(Intent(applicationContext, LocationService::class.java))
