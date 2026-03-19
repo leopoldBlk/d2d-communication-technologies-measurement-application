@@ -72,16 +72,16 @@ class BluetoothLeReceiverService : BluetoothLeService() {
 
                 if (result != null) {
                     if (!result.isLegacy && result.scanRecord?.serviceData?.containsKey(serviceUUID) == true) {
+                        val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                            LocalDateTime.now()
+                        } else {
+                            LocalDateTime.ofInstant(
+                                trustedTimeClient!!.computeCurrentInstant(),
+                                ZoneOffset.systemDefault()
+                            )
+                        }
 
                         if (testType == TestType.RANGE) {
-                            val timestamp: LocalDateTime = if (trustedTimeClient == null) {
-                                LocalDateTime.now()
-                            } else {
-                                LocalDateTime.ofInstant(
-                                    trustedTimeClient!!.computeCurrentInstant(),
-                                    ZoneOffset.systemDefault()
-                                )
-                            }
 
                             val receivedPacketUuid: String =
                                 result.scanRecord?.serviceData?.get(serviceUUID)
@@ -109,6 +109,7 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                                 "Bluetooth-LE-Receiver",
                                 "New Measurement: ${measurements.last()}"
                             )
+                        }
 
                             if (ChronoUnit.MINUTES.between(scanStartTimestamp, timestamp) >= 3) {
                                 scanningThread.interrupt()
@@ -143,7 +144,6 @@ class BluetoothLeReceiverService : BluetoothLeService() {
                                 }
 
                                 scanningThread.start()
-                            }
                         }
 
                         sendBroadcast(

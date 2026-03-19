@@ -85,16 +85,16 @@ class WifiAwareReceiverService : WifiAwareService() {
 
                             override fun onServiceDiscovered(info: ServiceDiscoveryInfo) {
                                 super.onServiceDiscovered(info)
+                                val timestamp: LocalDateTime = if (trustedTimeClient == null) {
+                                    LocalDateTime.now()
+                                } else {
+                                    LocalDateTime.ofInstant(
+                                        trustedTimeClient!!.computeCurrentInstant(),
+                                        ZoneOffset.systemDefault()
+                                    )
+                                }
 
                                 if (testType == TestType.RANGE) {
-                                    val timestamp: LocalDateTime = if (trustedTimeClient == null) {
-                                        LocalDateTime.now()
-                                    } else {
-                                        LocalDateTime.ofInstant(
-                                            trustedTimeClient!!.computeCurrentInstant(),
-                                            ZoneOffset.systemDefault()
-                                        )
-                                    }
 
                                     val receivedPacketUuid: String =
                                         info.serviceSpecificInfo?.decodeToString().toString()
