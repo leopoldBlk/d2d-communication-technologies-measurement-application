@@ -19,8 +19,7 @@ import android.content.IntentFilter
 import android.os.BatteryManager
 import android.util.Log
 import com.leopoldbialek.measurementapp.DataClasses.BatteryTest.MeasurementBatteryTest
-import com.leopoldbialek.measurementapp.DataClasses.RangeTest.MeasurementRangeTest
-import com.leopoldbialek.measurementapp.DataClasses.RangeTest.TransmissionPacketRangeTest
+import com.leopoldbialek.measurementapp.DataClasses.RangeTest.MeasurementRangeTestReceiver
 import com.leopoldbialek.measurementapp.Enums.Role
 import com.leopoldbialek.measurementapp.Enums.Technology
 import com.leopoldbialek.measurementapp.Enums.TestType
@@ -31,7 +30,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 import java.time.ZoneOffset
-import kotlin.uuid.ExperimentalUuidApi
 
 class WifiAwareReceiverService : WifiAwareService() {
     private lateinit var callbackThreadLooper: Looper
@@ -51,7 +49,6 @@ class WifiAwareReceiverService : WifiAwareService() {
         Looper.loop()
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     @SuppressLint("MissingPermission", "NewApi")
     private val discoveryThread: Thread = Thread {
         Looper.prepare()
@@ -88,7 +85,6 @@ class WifiAwareReceiverService : WifiAwareService() {
 
                             override fun onServiceDiscovered(info: ServiceDiscoveryInfo) {
                                 super.onServiceDiscovered(info)
-
                                 val timestamp: LocalDateTime = if (trustedTimeClient == null) {
                                     LocalDateTime.now()
                                 } else {
@@ -99,25 +95,25 @@ class WifiAwareReceiverService : WifiAwareService() {
                                 }
 
                                 if (testType == TestType.RANGE) {
-                                    val receivedTransmissionPacket: TransmissionPacketRangeTest =
-                                        Json.decodeFromString<TransmissionPacketRangeTest>(
-                                            info.serviceSpecificInfo?.decodeToString()
-                                                .toString()
-                                        )
 
-                                    val measurementRangeTest: MeasurementRangeTest =
-                                        MeasurementRangeTest(
-                                            receivedTransmissionPacket.packetUuid,
-                                            receivedTransmissionPacket.coordinatesSender,
-                                            receivedTransmissionPacket.timestampSending,
-                                            receivedTransmissionPacket.additionalInfoSender,
-                                            LocationService.currentCoordinates.toString(),
+                                    val receivedPacketUuid: String =
+                                        info.serviceSpecificInfo?.decodeToString().toString()
+
+                                    val measurementRangeTestReceiver: MeasurementRangeTestReceiver =
+                                        MeasurementRangeTestReceiver(
+                                            receivedPacketUuid,
+                                            LocationService.currentCoordinates.latitude.toString(),
+                                            LocationService.currentCoordinates.longitude.toString(),
                                             timestamp.toString()
                                         )
 
-                                    measurements.add(Json.encodeToString(measurementRangeTest))
+                                    measurements.add(
+                                        Json.encodeToString(
+                                            measurementRangeTestReceiver
+                                        )
+                                    )
 
-                                    if(measurements.size >= 100){
+                                    if (measurements.size >= 100) {
                                         persistenceController.persistData(measurements.toString())
                                         measurements.clear()
                                     }
@@ -125,7 +121,7 @@ class WifiAwareReceiverService : WifiAwareService() {
                                     LogController.log(
                                         Log.INFO,
                                         "Wifi-Aware-Receiver",
-                                        "New Measurement: ${measurementRangeTest}"
+                                        "New Measurement: ${measurementRangeTestReceiver}"
                                     )
                                 }
 
@@ -211,7 +207,7 @@ class WifiAwareReceiverService : WifiAwareService() {
 
                     measurements.add(Json.encodeToString(measurementBatteryTest))
 
-                    if(measurements.size >= 100){
+                    if (measurements.size >= 100) {
                         persistenceController.persistData(measurements.toString())
                         measurements.clear()
                     }

@@ -16,6 +16,7 @@ import com.leopoldbialek.measurementapp.DataClasses.Coordinates
 import com.leopoldbialek.measurementapp.Utils.LogController
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationListener
+import com.google.android.gms.location.LocationRequest.Builder.IMPLICIT_MIN_UPDATE_INTERVAL
 import com.google.android.gms.location.Priority
 import java.util.concurrent.Executors
 
@@ -36,7 +37,7 @@ class LocationService : Service() {
         locationUpdaterThreadLooper = looper
 
         fusedLocationProviderClient.requestLocationUpdates(
-            LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000).build(),
+            LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000).setMinUpdateIntervalMillis(IMPLICIT_MIN_UPDATE_INTERVAL).build(),
             Executors.newSingleThreadExecutor(),
             locationListener
         )
