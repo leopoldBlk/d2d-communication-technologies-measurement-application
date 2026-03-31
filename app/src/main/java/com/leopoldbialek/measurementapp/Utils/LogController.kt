@@ -4,7 +4,7 @@ import android.util.Log
 
 class LogController {
     companion object {
-        public var activeLogging: Boolean = true
+        public var activeLogging: Boolean = false
 
         public fun log(level: Int, tag: String, message: String) {
             if (activeLogging) {
