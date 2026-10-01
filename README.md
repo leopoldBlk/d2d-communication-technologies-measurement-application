@@ -16,9 +16,7 @@ This application enables the test of device-to-device (D2D) communication techno
 
 
 ## 📸 Screenshots
-<img src="docs/sender_configuration.png" width="1344" height="2992" alt="Sender Configuration" title="Sender Configuration">
-
-<img src="docs/receiver_configuration.png" width="1344" height="2992" alt="Receiver Configuration" title="Receiver Configuration">
+<img src="docs/sender_configuration.png" width="25%" alt="Sender Configuration" title="Sender Configuration"> &nbsp; &nbsp; <img src="docs/receiver_configuration.png" width="25%" alt="Receiver Configuration" title="Receiver Configuration">
 
 
 
@@ -34,4 +32,5 @@ During the transmission range test, the sender incorporates a UUID into the broa
 As the application is not packaged, [Android Studio](https://developer.android.com/studio) is required for compilation. Check out the source code, run the compilation process and deploy the applicaiotn on the devices to conduct the test with.
 
 
-## 📄 Licence
+## 📄 License
+Licensed under the MIT License, Copyright (c) 2026 Leopold Bialek
