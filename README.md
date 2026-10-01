@@ -1,4 +1,5 @@
 # Device-to-Device Technology Tester
+<img alt="Static Badge" src="https://img.shields.io/badge/License-MIT-blue">
 
 This application enables the test of device-to-device (D2D) communication technologies of Android smartphones in terms of power consumption and transmission range. This application targets D2D communication technologies  for connectionless broadcast communication.
 
